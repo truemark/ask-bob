@@ -1,0 +1,30 @@
+{
+  "name": "ask-bob",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "install-ui": "cd ui && pnpm i --frozen-lockfile",
+    "install-cdk": "cd cdk && pnpm i --frozen-lockfile",
+    "install-all": "concurrently \"pnpm:install-ui\" \"pnpm:install-cdk\" -c cyan,green,blue,yellow,magenta,gray",
+    "postinstall": "pnpm run install-all",
+    "build-ui": "cd ui && pnpm run build",
+    "build-cdk": "cd cdk && pnpm run build",
+    "build": "concurrently \"pnpm:build-ui\" \"pnpm:build-cdk\" -c blue,yellow,magenta,gray",
+    "test-ui": "cd ui && pnpm run test",
+    "test-cdk": "cd cdk && pnpm run test",
+    "test": "concurrently \"pnpm:test-ui\" \"pnpm:test-cdk\" -c blue,yellow,magenta,gray",
+    "fmt-ui": "cd ui && pnpm run fmt",
+    "fmt-cdk": "cd cdk && pnpm run fmt",
+    "fmt": "concurrently \"pnpm:fmt-ui\" \"pnpm:fmt-cdk\" -c cyan,green,blue,yellow,magenta,gray",
+    "watch-ui": "cd ui && pnpm run dev",
+    "watch-cdk": "cd cdk && pnpm run watch",
+    "watch": "concurrently \"pnpm:watch-ui\" \"pnpm:watch-cdk\" -c cyan,green,blue,yellow,magenta,gray",
+    "ecr-login": "./scripts/ecr-login.sh",
+    "cdk-deploy": "./scripts/cdk-deploy.sh",
+    "cdk-diff": "./scripts/cdk-deploy.sh diff"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "marked": "^14.0.0"
+  }
+}

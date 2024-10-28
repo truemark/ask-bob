@@ -1,0 +1,14 @@
+{
+  "hosted-zone:account=889335235414:domainName=ejensen.dev.truemark.io:privateZone=false:region=us-east-1": {
+    "Id": "/hostedzone/Z06307361V78I954CC26Y",
+    "Name": "ejensen.dev.truemark.io."
+  },
+  "hosted-zone:account=068062034833:domainName=stage.truemark.io:privateZone=false:region=us-east-1": {
+    "Id": "/hostedzone/Z319DOWRL82K92",
+    "Name": "stage.truemark.io."
+  },
+  "hosted-zone:account=178522259742:domainName=truemark.io:privateZone=false:region=us-east-1": {
+    "Id": "/hostedzone/Z2WKQ742YUV48X",
+    "Name": "truemark.io."
+  }
+}
