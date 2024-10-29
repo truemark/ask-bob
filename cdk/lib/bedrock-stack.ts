@@ -8,8 +8,10 @@ import {
 } from 'aws-cdk-lib/aws-bedrock';
 import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {getDataStackParameters} from './data-stack';
-import {CfnCollection} from 'aws-cdk-lib/aws-opensearchserverless';
-import {PhysicalName, Stack} from 'aws-cdk-lib';
+import {
+  CfnCollection,
+  CfnSecurityPolicy,
+} from 'aws-cdk-lib/aws-opensearchserverless';
 import {Role, ServicePrincipal} from 'aws-cdk-lib/aws-iam';
 
 /**
@@ -58,9 +60,53 @@ export class BedrockStack extends ExtendedStack {
 
     // Create a OpenSearch Serverless collection for code vectors
     const collection = new CfnCollection(this, 'Collection', {
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'ask-bob-vector',
       type: 'VECTORSEARCH',
     });
+
+    const encryptionPolicy = new CfnSecurityPolicy(
+      this,
+      'CollectionEncryptionPolicy',
+      {
+        name: `${collection.name}-enc`,
+        policy: JSON.stringify({
+          Rules: [
+            {
+              Resource: [`collection/${collection.name}`],
+              ResourceType: 'collection',
+            },
+          ],
+          AWSOwnedKey: true,
+        }),
+        type: 'encryption',
+      },
+    );
+    collection.addDependency(encryptionPolicy);
+
+    const networkPolicy = new CfnSecurityPolicy(
+      this,
+      'CollectionNetworkPolicy',
+      {
+        name: `${collection.name}-net`,
+        policy: JSON.stringify([
+          {
+            Rules: [
+              {
+                Resource: [`collection/${collection.name}`],
+                ResourceType: 'dashboard',
+              },
+              {
+                Resource: [`collection/${collection.name}`],
+                ResourceType: 'collection',
+              },
+            ],
+            AllowFromPublic: true,
+          },
+        ]),
+        type: 'network',
+      },
+    );
+    collection.addDependency(networkPolicy);
 
     const codeKnowledgeBaseRole = new Role(this, 'CodeKnowledgeBaseRole', {
       assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
@@ -74,7 +120,7 @@ export class BedrockStack extends ExtendedStack {
           embeddingModelArn: fm.modelArn,
         },
       },
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobCodeKnowledgeBase',
       roleArn: codeKnowledgeBaseRole.roleArn,
       storageConfiguration: {
         type: 'OPENSEARCH_SERVERLESS',
@@ -100,15 +146,8 @@ export class BedrockStack extends ExtendedStack {
         },
       },
       knowledgeBaseId: codeKnowledgeBase.attrKnowledgeBaseId,
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobCodeDataSource',
       dataDeletionPolicy: 'DELETE',
-    });
-
-    // Create a OpenSearch Serverless collection for code vectors
-    const docsCollection = new CfnCollection(this, 'DocsCollection', {
-      name: PhysicalName.GENERATE_IF_NEEDED,
-      description: 'Holds vectorized docs',
-      type: 'VECTORSEARCH',
     });
 
     const docsKnowledgeBaseRole = new Role(this, 'DocsKnowledgeBaseRole', {
@@ -123,12 +162,12 @@ export class BedrockStack extends ExtendedStack {
           embeddingModelArn: fm.modelArn,
         },
       },
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobDocsKnowledgeBase',
       roleArn: docsKnowledgeBaseRole.roleArn,
       storageConfiguration: {
         type: 'OPENSEARCH_SERVERLESS',
         opensearchServerlessConfiguration: {
-          collectionArn: docsCollection.attrArn,
+          collectionArn: collection.attrArn,
           fieldMapping: {
             metadataField: 'DocsMetadata',
             textField: 'DocsText',
@@ -149,14 +188,8 @@ export class BedrockStack extends ExtendedStack {
         },
       },
       knowledgeBaseId: docsKnowledgeBase.attrKnowledgeBaseId,
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobDocsDataSource',
       dataDeletionPolicy: 'DELETE',
-    });
-
-    // Create a OpenSearch Serverless collection for code vectors
-    const webCollection = new CfnCollection(this, 'WebCollection', {
-      name: PhysicalName.GENERATE_IF_NEEDED,
-      type: 'VECTORSEARCH',
     });
 
     const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
@@ -170,12 +203,12 @@ export class BedrockStack extends ExtendedStack {
           embeddingModelArn: fm.modelArn,
         },
       },
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobWebKnowledgeBase',
       roleArn: webKnowledgeBaseRole.roleArn,
       storageConfiguration: {
         type: 'OPENSEARCH_SERVERLESS',
         opensearchServerlessConfiguration: {
-          collectionArn: webCollection.attrArn,
+          collectionArn: collection.attrArn,
           fieldMapping: {
             metadataField: 'WebMetadata',
             textField: 'WebText',
@@ -207,7 +240,7 @@ export class BedrockStack extends ExtendedStack {
         },
       },
       knowledgeBaseId: webKnowledgeBase.attrKnowledgeBaseId,
-      name: PhysicalName.GENERATE_IF_NEEDED,
+      name: 'AskBobWebDataSource',
       dataDeletionPolicy: 'DELETE',
     });
   }
