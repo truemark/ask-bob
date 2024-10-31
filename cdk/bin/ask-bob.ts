@@ -61,6 +61,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     crawlerSeedUrls: ['https://truemark.io'],
     crawlerInclusionFilters: ['.*truemark\\.io.*'],
+    env: {account: app.account, region: AwsRegion.Oregon},
   });
   new EdgeStack(app, 'AskBobEdge', {
     zone: `${zonePrefix}.dev.truemark.io`,

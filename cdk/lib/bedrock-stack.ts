@@ -1,18 +1,22 @@
 import {ExtendedStack, ExtendedStackProps} from 'truemark-cdk-lib/aws-cdk';
 import {Construct} from 'constructs';
-import {
-  CfnDataSource,
-  CfnKnowledgeBase,
-  FoundationModel,
-  FoundationModelIdentifier,
-} from 'aws-cdk-lib/aws-bedrock';
 import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
-import {getDataStackParameters} from './data-stack';
 import {
   CfnCollection,
   CfnSecurityPolicy,
 } from 'aws-cdk-lib/aws-opensearchserverless';
-import {Role, ServicePrincipal} from 'aws-cdk-lib/aws-iam';
+import {
+  CfnKnowledgeBase,
+  FoundationModel,
+  FoundationModelIdentifier,
+} from 'aws-cdk-lib/aws-bedrock';
+import {
+  Effect,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from 'aws-cdk-lib/aws-iam';
+import {getDataStackParameters} from './data-stack';
 
 /**
  * Properties for the BedrockStack.
@@ -46,10 +50,10 @@ export class BedrockStack extends ExtendedStack {
   constructor(scope: Construct, id: string, props: BedrockStackProps) {
     super(scope, id, props);
 
-    const fm = FoundationModel.fromFoundationModelId(
+    const embeddingModel = FoundationModel.fromFoundationModelId(
       this,
-      'FoundationModel',
-      FoundationModelIdentifier.ANTHROPIC_CLAUDE_3_5_SONNET_20241022_V2_0,
+      'EmbeddingModel',
+      FoundationModelIdentifier.AMAZON_TITAN_EMBED_TEXT_V2_0,
     );
 
     // Get the data stack parameters
@@ -108,58 +112,49 @@ export class BedrockStack extends ExtendedStack {
     );
     collection.addDependency(networkPolicy);
 
-    const codeKnowledgeBaseRole = new Role(this, 'CodeKnowledgeBaseRole', {
-      assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
-    });
-
-    // Create a knowledge base for code
-    const codeKnowledgeBase = new CfnKnowledgeBase(this, 'CodeKnowledgeBase', {
-      knowledgeBaseConfiguration: {
-        type: 'VECTOR',
-        vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: fm.modelArn,
-        },
-      },
-      name: 'AskBobCodeKnowledgeBase',
-      roleArn: codeKnowledgeBaseRole.roleArn,
-      storageConfiguration: {
-        type: 'OPENSEARCH_SERVERLESS',
-        opensearchServerlessConfiguration: {
-          collectionArn: collection.attrArn,
-          fieldMapping: {
-            metadataField: 'CodeMetadata',
-            textField: 'CodeText',
-            vectorField: 'CodeVector',
-          },
-          vectorIndexName: 'CodeIndex',
-        },
-      },
-    });
-
-    // Create a data source to connect the knowledge base with the data
-    new CfnDataSource(this, 'CodeDataSource', {
-      dataSourceConfiguration: {
-        type: 'S3',
-        s3Configuration: {
-          bucketArn: dataStackParameters.knowledgeBaseBucket.bucketArn,
-          inclusionPrefixes: ['code'],
-        },
-      },
-      knowledgeBaseId: codeKnowledgeBase.attrKnowledgeBaseId,
-      name: 'AskBobCodeDataSource',
-      dataDeletionPolicy: 'DELETE',
-    });
-
     const docsKnowledgeBaseRole = new Role(this, 'DocsKnowledgeBaseRole', {
       assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
     });
+    docsKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:ListFoundationModels', 'bedrock:ListCustomModels'],
+        resources: ['*'],
+      }),
+    );
+    docsKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:InvokeModel'],
+        resources: [`arn:aws:bedrock:${this.region}::foundation-model/*`],
+      }),
+    );
+    docsKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['s3:GetObject', 's3:ListBucket'],
+        resources: [
+          `arn:aws:s3:::${dataStackParameters.knowledgeBaseBucket.bucketName}/docs`,
+          `arn:aws:s3:::${dataStackParameters.knowledgeBaseBucket.bucketName}/docs/*`,
+        ],
+      }),
+    );
+    docsKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['aoss:APIAccessAll'],
+        resources: [
+          `arn:aws:aoss:${this.region}:${this.account}:collection/${collection.attrId}`,
+        ],
+      }),
+    );
 
     // Create a knowledge base for code
     const docsKnowledgeBase = new CfnKnowledgeBase(this, 'DocsKnowledgeBase', {
       knowledgeBaseConfiguration: {
         type: 'VECTOR',
         vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: fm.modelArn,
+          embeddingModelArn: embeddingModel.modelArn,
         },
       },
       name: 'AskBobDocsKnowledgeBase',
@@ -179,69 +174,69 @@ export class BedrockStack extends ExtendedStack {
     });
 
     // Create a data source to connect the knowledge base with the data
-    new CfnDataSource(this, 'DocsDataSource', {
-      dataSourceConfiguration: {
-        type: 'S3',
-        s3Configuration: {
-          bucketArn: dataStackParameters.knowledgeBaseBucket.bucketArn,
-          inclusionPrefixes: ['docs'],
-        },
-      },
-      knowledgeBaseId: docsKnowledgeBase.attrKnowledgeBaseId,
-      name: 'AskBobDocsDataSource',
-      dataDeletionPolicy: 'DELETE',
-    });
+    // new CfnDataSource(this, 'DocsDataSource', {
+    //   dataSourceConfiguration: {
+    //     type: 'S3',
+    //     s3Configuration: {
+    //       bucketArn: dataStackParameters.knowledgeBaseBucket.bucketArn,
+    //       inclusionPrefixes: ['docs'],
+    //     },
+    //   },
+    //   knowledgeBaseId: docsKnowledgeBase.attrKnowledgeBaseId,
+    //   name: 'AskBobDocsDataSource',
+    //   dataDeletionPolicy: 'DELETE',
+    // });
 
-    const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
-      assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
-    });
+    // const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
+    //   assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
+    // });
 
-    const webKnowledgeBase = new CfnKnowledgeBase(this, 'WebKnowledgeBase', {
-      knowledgeBaseConfiguration: {
-        type: 'VECTOR',
-        vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: fm.modelArn,
-        },
-      },
-      name: 'AskBobWebKnowledgeBase',
-      roleArn: webKnowledgeBaseRole.roleArn,
-      storageConfiguration: {
-        type: 'OPENSEARCH_SERVERLESS',
-        opensearchServerlessConfiguration: {
-          collectionArn: collection.attrArn,
-          fieldMapping: {
-            metadataField: 'WebMetadata',
-            textField: 'WebText',
-            vectorField: 'WebVector',
-          },
-          vectorIndexName: 'WebIndex',
-        },
-      },
-    });
+    // const webKnowledgeBase = new CfnKnowledgeBase(this, 'WebKnowledgeBase', {
+    //   knowledgeBaseConfiguration: {
+    //     type: 'VECTOR',
+    //     vectorKnowledgeBaseConfiguration: {
+    //       embeddingModelArn: embeddingModel.modelArn,
+    //     },
+    //   },
+    //   name: 'AskBobWebKnowledgeBase',
+    //   roleArn: webKnowledgeBaseRole.roleArn,
+    //   storageConfiguration: {
+    //     type: 'OPENSEARCH_SERVERLESS',
+    //     opensearchServerlessConfiguration: {
+    //       collectionArn: collection.attrArn,
+    //       fieldMapping: {
+    //         metadataField: 'WebMetadata',
+    //         textField: 'WebText',
+    //         vectorField: 'WebVector',
+    //       },
+    //       vectorIndexName: 'WebIndex',
+    //     },
+    //   },
+    // });
 
     // Create a data source to connect the knowledge base with the data
-    new CfnDataSource(this, 'WebDataSource', {
-      dataSourceConfiguration: {
-        type: 'WEB',
-        webConfiguration: {
-          sourceConfiguration: {
-            urlConfiguration: {
-              seedUrls: props.crawlerSeedUrls.map((url) => ({
-                url: url,
-              })),
-            },
-          },
-          crawlerConfiguration: {
-            crawlerLimits: {
-              rateLimit: props.crawlerRateLimit ?? 60,
-            },
-            inclusionFilters: props.crawlerInclusionFilters,
-          },
-        },
-      },
-      knowledgeBaseId: webKnowledgeBase.attrKnowledgeBaseId,
-      name: 'AskBobWebDataSource',
-      dataDeletionPolicy: 'DELETE',
-    });
+    // new CfnDataSource(this, 'WebDataSource', {
+    //   dataSourceConfiguration: {
+    //     type: 'WEB',
+    //     webConfiguration: {
+    //       sourceConfiguration: {
+    //         urlConfiguration: {
+    //           seedUrls: props.crawlerSeedUrls.map((url) => ({
+    //             url: url,
+    //           })),
+    //         },
+    //       },
+    //       crawlerConfiguration: {
+    //         crawlerLimits: {
+    //           rateLimit: props.crawlerRateLimit ?? 60,
+    //         },
+    //         inclusionFilters: props.crawlerInclusionFilters,
+    //       },
+    //     },
+    //   },
+    //   knowledgeBaseId: webKnowledgeBase.attrKnowledgeBaseId,
+    //   name: 'AskBobWebDataSource',
+    //   dataDeletionPolicy: 'DELETE',
+    // });
   }
 }
