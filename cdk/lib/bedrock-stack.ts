@@ -2,6 +2,7 @@ import {ExtendedStack, ExtendedStackProps} from 'truemark-cdk-lib/aws-cdk';
 import {Construct} from 'constructs';
 import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {
+  CfnAccessPolicy,
   CfnCollection,
   CfnSecurityPolicy,
 } from 'aws-cdk-lib/aws-opensearchserverless';
@@ -17,6 +18,7 @@ import {
   ServicePrincipal,
 } from 'aws-cdk-lib/aws-iam';
 import {getDataStackParameters} from './data-stack';
+import {KnowledgeBaseCollectionIndex} from './knowledge-base-collection-index';
 
 /**
  * Properties for the BedrockStack.
@@ -55,6 +57,7 @@ export class BedrockStack extends ExtendedStack {
       'EmbeddingModel',
       FoundationModelIdentifier.AMAZON_TITAN_EMBED_TEXT_V2_0,
     );
+    const embeddingModelVectorOutputDimension = 1024;
 
     // Get the data stack parameters
     const dataStackParameters = getDataStackParameters(
@@ -149,29 +152,73 @@ export class BedrockStack extends ExtendedStack {
       }),
     );
 
-    // Create a knowledge base for code
-    const docsKnowledgeBase = new CfnKnowledgeBase(this, 'DocsKnowledgeBase', {
-      knowledgeBaseConfiguration: {
-        type: 'VECTOR',
-        vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: embeddingModel.modelArn,
+    const dataAccessPolicy = new CfnAccessPolicy(this, 'DataAccessPolicy', {
+      name: `${collection.name}-dap`,
+      policy: JSON.stringify([
+        {
+          Rules: [
+            {
+              Resource: [`collection/${collection.name}`],
+              Permission: [
+                'aoss:CreateCollectionItems',
+                'aoss:DeleteCollectionItems',
+                'aoss:UpdateCollectionItems',
+                'aoss:DescribeCollectionItems',
+              ],
+              ResourceType: 'collection',
+            },
+            {
+              Resource: [`index/${collection.name}/*`],
+              Permission: [
+                'aoss:CreateIndex',
+                'aoss:DeleteIndex',
+                'aoss:UpdateIndex',
+                'aoss:DescribeIndex',
+                'aoss:ReadDocument',
+                'aoss:WriteDocument',
+              ],
+              ResourceType: 'index',
+            },
+          ],
+          Principal: [docsKnowledgeBaseRole.roleArn],
         },
-      },
-      name: 'AskBobDocsKnowledgeBase',
-      roleArn: docsKnowledgeBaseRole.roleArn,
-      storageConfiguration: {
-        type: 'OPENSEARCH_SERVERLESS',
-        opensearchServerlessConfiguration: {
-          collectionArn: collection.attrArn,
-          fieldMapping: {
-            metadataField: 'DocsMetadata',
-            textField: 'DocsText',
-            vectorField: 'DocsVector',
-          },
-          vectorIndexName: 'DocsIndex',
-        },
-      },
+      ]),
+      type: 'data',
     });
+    collection.addDependency(dataAccessPolicy);
+
+    new KnowledgeBaseCollectionIndex(this, 'DocsIndex', {
+      openSearchEndpoint: collection.attrCollectionEndpoint,
+      indexName: 'DocsIndex',
+      metadataFieldName: 'DocsMetadata',
+      textFieldName: 'DocsText',
+      vectorFieldName: 'DocsVector',
+      vectorFieldDimension: embeddingModelVectorOutputDimension,
+    });
+
+    // Create a knowledge base for code
+    // const docsKnowledgeBase = new CfnKnowledgeBase(this, 'DocsKnowledgeBase', {
+    //   knowledgeBaseConfiguration: {
+    //     type: 'VECTOR',
+    //     vectorKnowledgeBaseConfiguration: {
+    //       embeddingModelArn: embeddingModel.modelArn,
+    //     },
+    //   },
+    //   name: 'AskBobDocsKnowledgeBase',
+    //   roleArn: docsKnowledgeBaseRole.roleArn,
+    //   storageConfiguration: {
+    //     type: 'OPENSEARCH_SERVERLESS',
+    //     opensearchServerlessConfiguration: {
+    //       collectionArn: collection.attrArn,
+    //       fieldMapping: {
+    //         metadataField: 'DocsMetadata',
+    //         textField: 'DocsText',
+    //         vectorField: 'DocsVector',
+    //       },
+    //       vectorIndexName: 'DocsIndex',
+    //     },
+    //   },
+    // });
 
     // Create a data source to connect the knowledge base with the data
     // new CfnDataSource(this, 'DocsDataSource', {
