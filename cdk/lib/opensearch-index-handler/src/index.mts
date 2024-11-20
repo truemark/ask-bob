@@ -34,30 +34,33 @@ export async function handler(event: CustomResourceEvent) {
     }),
     node: endpoint,
   });
-  const response = await client.indices.create({
-    index: indexName,
-    body: {
-      settings: {
-        index: {
-          'knn': true,
-          'knn.algo_param.ef_search': 100,
-        },
-      },
-      mappings: {
-        properties: {
-          [vectorFieldName]: {
-            type: 'knn_vector',
-            dimension: vectorFieldDimension,
-          },
-          [textFieldName]: {
-            type: 'text',
-          },
-          [metadataFieldName]: {
-            type: 'keyword',
+  const indexExists = await client.indices.exists({index: indexName});
+  if (!indexExists.body) {
+    const response = await client.indices.create({
+      index: indexName,
+      body: {
+        settings: {
+          index: {
+            'knn': true,
+            'knn.algo_param.ef_search': 100,
           },
         },
+        mappings: {
+          properties: {
+            [vectorFieldName]: {
+              type: 'knn_vector',
+              dimension: vectorFieldDimension,
+            },
+            [textFieldName]: {
+              type: 'text',
+            },
+            [metadataFieldName]: {
+              type: 'keyword',
+            },
+          },
+        },
       },
-    },
-  });
-  console.log('Response', JSON.stringify(response, null, 2));
+    });
+    console.log('Response', JSON.stringify(response, null, 2));
+  }
 }

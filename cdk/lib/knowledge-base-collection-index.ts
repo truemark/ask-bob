@@ -4,6 +4,12 @@ import {CustomResource, Duration} from 'aws-cdk-lib';
 import {Provider} from 'aws-cdk-lib/custom-resources';
 import {Runtime} from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
+import {
+  Effect,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from 'aws-cdk-lib/aws-iam';
 
 export interface CollectionIndexProps {
   readonly openSearchEndpoint: string;
@@ -21,6 +27,7 @@ export class KnowledgeBaseCollectionIndex extends Construct {
   readonly textFieldName: string;
   readonly vectorFieldName: string;
   readonly vectorFieldDimension: number;
+  readonly role: Role;
   constructor(scope: Construct, id: string, props: CollectionIndexProps) {
     super(scope, id);
 
@@ -31,7 +38,25 @@ export class KnowledgeBaseCollectionIndex extends Construct {
     this.vectorFieldName = props.vectorFieldName;
     this.vectorFieldDimension = props.vectorFieldDimension;
 
+    const role = new Role(this, 'Role', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+    });
+    this.role = role;
+    role.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'logs:CreateLogGroup',
+          'logs:CreateLogStream',
+          'logs:PutLogEvents',
+          'aoss:APIAccessAll',
+        ],
+        resources: ['*'],
+      }),
+    );
+
     const fn = new NodejsFunction(this, 'Function', {
+      role,
       runtime: Runtime.NODEJS_20_X,
       handler: 'handler',
       entry: path.join(

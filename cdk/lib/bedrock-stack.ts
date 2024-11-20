@@ -7,7 +7,6 @@ import {
   CfnSecurityPolicy,
 } from 'aws-cdk-lib/aws-opensearchserverless';
 import {
-  CfnKnowledgeBase,
   FoundationModel,
   FoundationModelIdentifier,
 } from 'aws-cdk-lib/aws-bedrock';
@@ -152,6 +151,15 @@ export class BedrockStack extends ExtendedStack {
       }),
     );
 
+    const docsIndex = new KnowledgeBaseCollectionIndex(this, 'DocsIndex', {
+      openSearchEndpoint: collection.attrCollectionEndpoint,
+      indexName: 'docs',
+      metadataFieldName: 'DocsMetadata',
+      textFieldName: 'DocsText',
+      vectorFieldName: 'DocsVector',
+      vectorFieldDimension: embeddingModelVectorOutputDimension,
+    });
+
     const dataAccessPolicy = new CfnAccessPolicy(this, 'DataAccessPolicy', {
       name: `${collection.name}-dap`,
       policy: JSON.stringify([
@@ -180,21 +188,16 @@ export class BedrockStack extends ExtendedStack {
               ResourceType: 'index',
             },
           ],
-          Principal: [docsKnowledgeBaseRole.roleArn],
+          Principal: [
+            docsKnowledgeBaseRole.roleArn,
+            docsIndex.role.roleArn,
+            'arn:aws:iam::889335235414:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Administrator_285bb2c5aa971ba3',
+          ],
         },
       ]),
       type: 'data',
     });
     collection.addDependency(dataAccessPolicy);
-
-    new KnowledgeBaseCollectionIndex(this, 'DocsIndex', {
-      openSearchEndpoint: collection.attrCollectionEndpoint,
-      indexName: 'DocsIndex',
-      metadataFieldName: 'DocsMetadata',
-      textFieldName: 'DocsText',
-      vectorFieldName: 'DocsVector',
-      vectorFieldDimension: embeddingModelVectorOutputDimension,
-    });
 
     // Create a knowledge base for code
     // const docsKnowledgeBase = new CfnKnowledgeBase(this, 'DocsKnowledgeBase', {
@@ -225,6 +228,7 @@ export class BedrockStack extends ExtendedStack {
     //   dataSourceConfiguration: {
     //     type: 'S3',
     //     s3Configuration: {
+    //       bucketArn: dataStackParameters.knowledgeBaseBucket.bucketArn,
     //       bucketArn: dataStackParameters.knowledgeBaseBucket.bucketArn,
     //       inclusionPrefixes: ['docs'],
     //     },
