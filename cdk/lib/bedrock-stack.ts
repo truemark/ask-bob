@@ -148,6 +148,35 @@ export class BedrockStack extends ExtendedStack {
         effect: Effect.ALLOW,
         actions: ['aoss:APIAccessAll'],
         resources: [
+          // '*',
+          `arn:aws:aoss:${this.region}:${this.account}:collection/${collection.attrId}`,
+        ],
+      }),
+    );
+
+    const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
+      assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
+    });
+    webKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:ListFoundationModels', 'bedrock:ListCustomModels'],
+        resources: ['*'],
+      }),
+    );
+    webKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:InvokeModel'],
+        resources: [`arn:aws:bedrock:${this.region}::foundation-model/*`],
+      }),
+    );
+    webKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['aoss:APIAccessAll'],
+        resources: [
+          // '*',
           `arn:aws:aoss:${this.region}:${this.account}:collection/${collection.attrId}`,
         ],
       }),
@@ -165,9 +194,9 @@ export class BedrockStack extends ExtendedStack {
     const webIndex = new KnowledgeBaseCollectionIndex(this, 'WebIndex', {
       openSearchEndpoint: collection.attrCollectionEndpoint,
       indexName: 'web',
-      metadataFieldName: 'DocsMetadata',
-      textFieldName: 'DocsText',
-      vectorFieldName: 'DocsVector',
+      metadataFieldName: 'WebMetadata',
+      textFieldName: 'WebText',
+      vectorFieldName: 'WebVector',
       vectorFieldDimension: embeddingModelVectorOutputDimension,
     });
 
@@ -201,6 +230,7 @@ export class BedrockStack extends ExtendedStack {
           ],
           Principal: [
             docsKnowledgeBaseRole.roleArn,
+            webKnowledgeBaseRole.roleArn,
             docsIndex.role.roleArn,
             webIndex.role.roleArn,
             // TODO Move to props. Allows access from the SSO role I use in by dev account.
@@ -231,10 +261,11 @@ export class BedrockStack extends ExtendedStack {
             textField: 'DocsText',
             vectorField: 'DocsVector',
           },
-          vectorIndexName: 'docs',
+          vectorIndexName: docsIndex.indexName,
         },
       },
     });
+    docsKnowledgeBase.node.addDependency(docsIndex.resource);
 
     // Create a data source to connect the knowledge base with the data
     new CfnDataSource(this, 'DocsDataSource', {
@@ -248,10 +279,6 @@ export class BedrockStack extends ExtendedStack {
       knowledgeBaseId: docsKnowledgeBase.attrKnowledgeBaseId,
       name: 'AskBobDocsDataSource',
       dataDeletionPolicy: 'DELETE',
-    });
-
-    const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
-      assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
     });
 
     const webKnowledgeBase = new CfnKnowledgeBase(this, 'WebKnowledgeBase', {
@@ -272,10 +299,11 @@ export class BedrockStack extends ExtendedStack {
             textField: 'WebText',
             vectorField: 'WebVector',
           },
-          vectorIndexName: 'web',
+          vectorIndexName: webIndex.indexName,
         },
       },
     });
+    webKnowledgeBase.node.addDependency(webIndex.resource);
 
     // Create a data source to connect the knowledge base with the data
     new CfnDataSource(this, 'WebDataSource', {

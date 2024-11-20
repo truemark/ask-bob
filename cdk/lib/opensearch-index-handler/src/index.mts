@@ -2,11 +2,20 @@ import {Client} from '@opensearch-project/opensearch';
 import {AwsSigv4Signer} from '@opensearch-project/opensearch/aws';
 import {defaultProvider} from '@aws-sdk/credential-provider-node';
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export interface CustomResourceEvent {
+  readonly RequestType: 'Create' | 'Update' | 'Delete';
   readonly ResourceProperties: Record<string, string>;
 }
 
 export async function handler(event: CustomResourceEvent) {
+  console.log('Event', JSON.stringify(event, null, 2));
+  if (event.RequestType === 'Delete') {
+    return;
+  }
   const endpoint = event.ResourceProperties.openSearchEndpoint;
   const indexName = event.ResourceProperties.indexName;
   const metadataFieldName = event.ResourceProperties.metadataFieldName;
@@ -36,13 +45,16 @@ export async function handler(event: CustomResourceEvent) {
   });
   const indexExists = await client.indices.exists({index: indexName});
   if (!indexExists.body) {
+    // See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-vector-search.html
     const response = await client.indices.create({
       index: indexName,
       body: {
         settings: {
           index: {
-            'knn': true,
-            'knn.algo_param.ef_search': 100,
+            knn: true,
+            // 'knn.space_type': 'l2',
+            // 'knn.engine': 'FAISS',
+            // 'knn.algo_param.ef_search': 100,
           },
         },
         mappings: {
@@ -50,6 +62,10 @@ export async function handler(event: CustomResourceEvent) {
             [vectorFieldName]: {
               type: 'knn_vector',
               dimension: vectorFieldDimension,
+              method: {
+                engine: 'faiss',
+                name: 'hnsw',
+              },
             },
             [textFieldName]: {
               type: 'text',
@@ -62,5 +78,6 @@ export async function handler(event: CustomResourceEvent) {
       },
     });
     console.log('Response', JSON.stringify(response, null, 2));
+    await sleep(60000);
   }
 }

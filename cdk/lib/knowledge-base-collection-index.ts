@@ -28,6 +28,7 @@ export class KnowledgeBaseCollectionIndex extends Construct {
   readonly vectorFieldName: string;
   readonly vectorFieldDimension: number;
   readonly role: Role;
+  readonly resource: CustomResource;
   constructor(scope: Construct, id: string, props: CollectionIndexProps) {
     super(scope, id);
 
@@ -141,7 +142,7 @@ export class KnowledgeBaseCollectionIndex extends Construct {
       onEventHandler: fn,
     });
 
-    new CustomResource(this, 'Resource', {
+    this.resource = new CustomResource(this, 'Resource', {
       serviceToken: provider.serviceToken,
       properties: {
         openSearchEndpoint: props.openSearchEndpoint,
@@ -153,5 +154,6 @@ export class KnowledgeBaseCollectionIndex extends Construct {
         timestamp: Date.now(), // Forces re-deployment and execution of the custom resource
       },
     });
+    this.resource.node.addDependency(this.resource);
   }
 }

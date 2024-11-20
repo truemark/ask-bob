@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 
 const config = [
   {
-    ignores: ['cdk.out', 'node_modules', '**/*.js', '**/*.d.*', '**/*.map'],
+    ignores: ['cdk.out', 'node_modules', '**/*.js', '**/*.d.*', '**/*.map', '**/*.mjs'],
   },
   ...tseslint.config(
     eslint.configs.recommended,

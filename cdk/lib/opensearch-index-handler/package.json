@@ -7,7 +7,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "clean": "find ./src -type f \\( -name \"*.mjs\" -o -name \"*.d.mts\" -o -name \"*.map\" \\) -exec rm -f {} \\;",
-    "fmt": "prettier --write ."
+    "fmt": "prettier --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@opensearch-project/opensearch": "^2.12.0"
