@@ -98,6 +98,7 @@ export class PipelineStack extends ExtendedStack {
       props: {
         zone: 'stage.truemark.io',
         graphApiName: 'AskBobStage',
+        dataStackParameterExportOptions: stageData.stack.parameterExportOptions,
         graphSupportStackParameterExportOptions:
           stageGraphSupportStack.stack.parameterExportOptions,
       },
@@ -173,6 +174,7 @@ export class PipelineStack extends ExtendedStack {
       props: {
         zone: 'truemark.io',
         graphApiName: 'AskBobProd',
+        dataStackParameterExportOptions: prodData.stack.parameterExportOptions,
         graphSupportStackParameterExportOptions:
           prodGraphSupportStack.stack.parameterExportOptions,
       },

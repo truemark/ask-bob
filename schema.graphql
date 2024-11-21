@@ -1,6 +1,8 @@
 type Mutation {
   createMessage(
+    sessionId: String!
     body: String!
+    handle: String!
   ): Message!
 }
 
@@ -15,6 +17,7 @@ type Subscription {
 
 type Message {
   messageId: String!
+  sessionId: String!
   body: String!
   createdAt: String!
   handle: String!

@@ -68,6 +68,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     env: {account: app.account, region: AwsRegion.Oregon},
   });
   new GraphStack(app, 'AskBobGraph', {
+    dataStackParameterExportOptions: dataStack.parameterExportOptions,
     graphSupportStackParameterExportOptions:
       graphSupportStack.parameterExportOptions,
     zone: `${zonePrefix}.dev.truemark.io`,

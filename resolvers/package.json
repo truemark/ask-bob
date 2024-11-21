@@ -1,0 +1,32 @@
+{
+  "name": "platform-resolvers",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "pnpx esbuild --tree-shaking=true --bundle --sources-content=false --target=esnext --platform=node --format=esm --external:@aws-appsync/utils --outdir=dist src/**/*.mts",
+    "watch": "pnpx esbuild --tree-shaking=true --watch --bundle --sources-content=false --target=esnext --platform=node --format=esm --external:@aws-appsync/utils --outdir=dist src/**/*.mts",
+    "prebuild": "prettier --check . && gts lint",
+    "test": "vitest run --coverage",
+    "lint": "gts lint",
+    "clean": "rm -rf dist",
+    "fix": "gts fix",
+    "posttest": "npm run lint",
+    "fmt": "prettier --write ."
+  },
+  "devDependencies": {
+    "@aws-appsync/eslint-plugin": "^1.6.0",
+    "@aws-appsync/utils": "^1.8.0",
+    "@aws-sdk/client-appsync": "^3.600.0",
+    "@centergauge/client": "link:../client/dist",
+    "@vitest/coverage-v8": "^1.6.0",
+    "esbuild": "^0.21.5",
+    "gts": "^5.3.1",
+    "pretty-quick": "^4.0.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0",
+    "zod": "^3.23.8"
+  },
+  "dependencies": {
+    "valibot": "^0.35.0"
+  }
+}
