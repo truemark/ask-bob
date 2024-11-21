@@ -71,8 +71,10 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     graphSupportStackParameterExportOptions:
       graphSupportStack.parameterExportOptions,
+    bedrockStackParameterExportOptions: bedrockStack.parameterExportOptions,
     zone: `${zonePrefix}.dev.truemark.io`,
     graphApiName: 'ask-bob',
+    logLevel: 'trace',
     env: {account: app.account, region: AwsRegion.Oregon},
   });
   const appStack = new AppStack(app, 'AskBobApp', {

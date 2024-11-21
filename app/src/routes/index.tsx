@@ -1,4 +1,4 @@
-import {$, component$, sync$} from '@builder.io/qwik';
+import {$, component$, sync$, useSignal} from '@builder.io/qwik';
 import {routeLoader$, server$, type DocumentHead} from '@builder.io/qwik-city';
 import UniversalLayout from '~/components/universal-layout';
 import LogoLight from '~/components/images/logo-light';
@@ -12,13 +12,121 @@ import {
 import config from '~/lib/config.server';
 import {v4 as uuidv4} from 'uuid';
 
+const names = [
+  'Abigail',
+  'Alexander',
+  'Alicia',
+  'Andrew',
+  'Anthony',
+  'Benjamin',
+  'Brianna',
+  'Brandon',
+  'Brittany',
+  'Caleb',
+  'Cameron',
+  'Caroline',
+  'Charlotte',
+  'Chloe',
+  'Christopher',
+  'Claire',
+  'Connor',
+  'Daniel',
+  'David',
+  'Dominic',
+  'Dylan',
+  'Eleanor',
+  'Elizabeth',
+  'Ella',
+  'Emily',
+  'Emma',
+  'Ethan',
+  'Evan',
+  'Faith',
+  'Gabriella',
+  'Gavin',
+  'Grace',
+  'Hannah',
+  'Harper',
+  'Henry',
+  'Isabella',
+  'Isaac',
+  'Jack',
+  'Jackson',
+  'Jacob',
+  'James',
+  'Jasmine',
+  'Jayden',
+  'Jessica',
+  'Joseph',
+  'Joshua',
+  'Julian',
+  'Kaitlyn',
+  'Kayla',
+  'Kevin',
+  'Kylie',
+  'Lauren',
+  'Leah',
+  'Liam',
+  'Lily',
+  'Logan',
+  'Lucas',
+  'Luke',
+  'Madison',
+  'Mason',
+  'Matthew',
+  'Maya',
+  'Mia',
+  'Michael',
+  'Nathan',
+  'Natalie',
+  'Noah',
+  'Olivia',
+  'Owen',
+  'Parker',
+  'Penelope',
+  'Peyton',
+  'Rachel',
+  'Rebecca',
+  'Riley',
+  'Ryan',
+  'Samantha',
+  'Samuel',
+  'Sarah',
+  'Savannah',
+  'Sebastian',
+  'Sofia',
+  'Sophia',
+  'Stella',
+  'Sydney',
+  'Taylor',
+  'Thomas',
+  'Tyler',
+  'Victoria',
+  'Violet',
+  'William',
+  'Wyatt',
+  'Xavier',
+  'Zachary',
+  'Zoe',
+  'Zoey',
+  'Aiden',
+  'Angelina',
+  'Bryce',
+  'Clara',
+];
+
+function getRandomName(): string {
+  const randomIndex = Math.floor(Math.random() * names.length);
+  return names[randomIndex];
+}
+
 type ConfigData = {
   apiKey: string;
   endpoint: string;
   realtimeEndpoint: string;
 };
 
-export const sendMessage = server$(async (message: string) => {
+export const sendMessage = server$(async (handle: string, message: string) => {
   const response = await fetch(config().appSyncEndpoint, {
     method: 'POST',
     headers: {
@@ -40,7 +148,7 @@ export const sendMessage = server$(async (message: string) => {
       variables: {
         sessionId: 'test', // TODO later be dynamic
         body: message,
-        handle: 'meow', // TODO later be dynamic
+        handle: handle,
       },
     }),
   });
@@ -101,6 +209,7 @@ function startSubscription(ws: WebSocket, url: URL, apiKey: string) {
 
 export default component$(() => {
   const configData = useConfigData();
+  const handleSignal = useSignal(getRandomName());
 
   const onOpen$: OpenEventFunction = $((ev, ws) => {
     ws.send(JSON.stringify({type: 'connection_init'}));
@@ -125,9 +234,13 @@ export default component$(() => {
       }
       if (data.type === 'data') {
         if (data.payload.data.addMessage) {
-          console.log('Meow', data.payload.data.addMessage.body);
+          const message = data.payload.data.addMessage;
+          console.log('Moo', message);
           document.getElementById('content')!.innerHTML +=
-            `<div class="text-white">${data.payload.data.addMessage.body}</div>`;
+            `<div class="pb-4 pt-4 flex">
+                <div class="pr-4 font-semibold ${message.handle === 'Bob' ? 'text-brand-primary' : 'text-neutral-250'}">${message.handle}:</div>
+                <div>${message.body}</div>
+             </div>`;
         }
       }
     }
@@ -163,13 +276,21 @@ export default component$(() => {
               <LogoLight width={200} />
             </a>
           </div>
-          <div class="text-2xl text-neutral-400">Ask Bob</div>
+          <div>
+            You are{' '}
+            <span class="text-neutral-250 font-semibold">
+              {handleSignal.value}
+            </span>
+          </div>
+          <div class="text-2xl text-neutral-400 pt-5">
+            Ask Bob a question...
+          </div>
         </div>
-        <div id="content"></div>
+        <div id="content" class="w-4/5 md:w-1/2 overflow-auto"></div>
         <div
           id="editor"
           contentEditable="true"
-          class="w-5/6 md:w-2/3 bg-neutral-750 rounded-3xl sm:mb-2 md:mb-12 p-4 outline-none overflow-auto"
+          class="w-4/5 md:w-1/2 bg-neutral-750 rounded-3xl sm:mb-2 md:mb-12 p-4 outline-none overflow-auto"
           // onPaste$={[
           //   sync$((e: ClipboardEvent) => e.preventDefault()),
           //   $((e) => {
@@ -196,7 +317,7 @@ export default component$(() => {
               if (e.key === 'Enter') {
                 const element = document.getElementById('editor');
                 if (element) {
-                  sendMessage(element.innerText);
+                  sendMessage(handleSignal.value, element.innerText);
                   element.innerText = '';
                 }
               }

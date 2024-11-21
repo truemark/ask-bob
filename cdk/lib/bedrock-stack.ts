@@ -379,7 +379,7 @@ export class BedrockStack extends ExtendedStack {
       agentResourceRoleArn: agentRole.roleArn,
       autoPrepare: true,
       instruction:
-        "You're an engineer in an AWS partner. You're friendly and helpful. You help answer technical questions.",
+        "You're an engineer in an AWS partner. You're friendly and helpful. You help answer technical questions. Your name is Bob.",
       knowledgeBases: [
         {
           description: 'Docs knowledge base',

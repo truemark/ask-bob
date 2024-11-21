@@ -15,6 +15,8 @@ module.exports = {
         brand: {
           blue: '#162337',
           green: '#2AB474',
+          primary: '#B72C27',
+          secondary: '#575757',
         },
         neutral: {
           '950': '#0a0a0a', // b - 4%

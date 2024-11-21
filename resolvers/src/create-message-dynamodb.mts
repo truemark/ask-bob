@@ -1,6 +1,6 @@
-import {util} from '@aws-appsync/utils';
+import {Context, util} from '@aws-appsync/utils';
 import * as ddb from '@aws-appsync/utils/dynamodb';
-import {Context, DynamoDBItem} from './types.mjs';
+import {DynamoDBItem} from './types.mjs';
 
 // mutation MyMutation {
 //   createMessage(body: "This is a test", sessionId: "1234", handle: "McTestSome") {

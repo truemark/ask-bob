@@ -11,10 +11,9 @@ import {Construct} from 'constructs';
 import * as path from 'path';
 import {ITableV2} from 'aws-cdk-lib/aws-dynamodb';
 import {LogLevel} from './globals';
-import {Effect, PolicyStatement} from 'aws-cdk-lib/aws-iam';
 
 /**
- * Properties for the SiteFunction.
+ * Properties for the AppFunction.
  */
 export interface AppFunctionProps {
   readonly logLevel: LogLevel;
@@ -55,13 +54,6 @@ export class AppFunction extends ExtendedNodejsFunction {
         createDeployment: false, // We don't need canary deploys for this website
       },
     });
-    this.addToRolePolicy(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        actions: ['bedrock:InvokeAgent'],
-        resources: [`arn:aws:bedrock:::agent/${props.agentId}`],
-      }),
-    );
     // Expose the function URL as an output
     this.functionUrl = this.addFunctionUrl({
       authType: FunctionUrlAuthType.NONE,

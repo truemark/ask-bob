@@ -11,7 +11,7 @@
     "fmt": "prettier --write ."
   },
   "dependencies": {
-    "lib": "link:../lib/dist",
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.697.0",
     "@nr1e/logging": "1.4.1",
     "uuid": "^8.3.2",
     "valibot": "^0.35.0"

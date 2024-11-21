@@ -17,44 +17,44 @@ export interface DynamoDBItem<T> {
   EntityType: string;
 }
 
-export interface Context {
-  env: Record<string, string>;
-  identity?: {
-    claims: {
-      aud: string | string[];
-      sub: string;
-      nbf: string;
-      scope: string;
-      iss: string;
-      exp: number;
-      iat: number;
-      client_id: string;
-      jti: string;
-    };
-    issuer: string;
-    sub: string;
-  };
-  result: Record<string, unknown>;
-  prev?: {
-    result?: Record<any, any> | Array<any>;
-  };
-  request: {
-    headers: Record<string, string>;
-    domainName: string;
-  };
-  info: {
-    fieldName: string;
-    parentTypeName: string;
-    variables: Record<string, unknown>;
-  };
-  error?: {
-    message: string;
-    type?: string;
-    unhandledErrorType?: unknown;
-  };
-  prv: unknown;
-  stash: Record<string, unknown>;
-  outErrors: unknown[];
-  arguments: Record<string, any>;
-  source: unknown;
-}
+// export interface Context {
+//   env: Record<string, string>;
+//   identity?: {
+//     claims: {
+//       aud: string | string[];
+//       sub: string;
+//       nbf: string;
+//       scope: string;
+//       iss: string;
+//       exp: number;
+//       iat: number;
+//       client_id: string;
+//       jti: string;
+//     };
+//     issuer: string;
+//     sub: string;
+//   };
+//   result: Record<string, unknown>;
+//   prev?: {
+//     result?: Record<any, any> | Array<any>;
+//   };
+//   request: {
+//     headers: Record<string, string>;
+//     domainName: string;
+//   };
+//   info: {
+//     fieldName: string;
+//     parentTypeName: string;
+//     variables: Record<string, unknown>;
+//   };
+//   error?: {
+//     message: string;
+//     type?: string;
+//     unhandledErrorType?: unknown;
+//   };
+//   prv: unknown;
+//   stash: Record<string, unknown>;
+//   outErrors: unknown[];
+//   arguments: Record<string, any>;
+//   source: unknown;
+// }
