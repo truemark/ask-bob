@@ -18,3 +18,5 @@ all software engineers have at one time or another done JavaScript or TypeScript
 DevOps engineer who knows Python to pick up.
 
 ## Quick Links
+
+* [Iconify](https://icon-sets.iconify.design/)

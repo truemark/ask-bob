@@ -1,1 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 500 500"><g clip-path="url(#a)"><circle cx="250" cy="250" r="250" fill="#fff"/><path fill="#18B6F6" d="m367.87 418.45-61.17-61.18-.94.13v-.67L175.7 227.53l32.05-31.13L188.9 87.73 99.56 199.09c-15.22 15.42-18.03 40.51-7.08 59.03l55.83 93.11a46.82 46.82 0 0 0 40.73 22.81l27.65-.27 151.18 44.68Z"/><path fill="#AC7EF4" d="m401.25 196.94-12.29-22.81-6.41-11.67-2.54-4.56-.26.26-33.66-58.63a47.07 47.07 0 0 0-41.27-23.75l-29.51.8-88.01.28a47.07 47.07 0 0 0-40.33 23.34L93.4 207l95.76-119.54L314.7 226.19l-22.3 22.67 13.35 108.54.13-.26v.26h-.26l.26.27 10.42 10.2 50.62 49.78c2.13 2 5.6-.4 4.13-2.96l-31.25-61.85 54.5-101.3 1.73-2c.67-.81 1.33-1.62 1.87-2.42a46.8 46.8 0 0 0 3.34-50.18Z"/><path fill="#fff" d="M315.1 225.65 189.18 87.6l17.9 108.14L175 227l130.5 130.27-11.75-108.14 21.37-23.48Z"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h500v500H0z"/></clipPath></defs></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 20.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 102.5 102.5" enable-background="new 0 0 560 102.5" xml:space="preserve">
+<g>
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -21.3646 51.0116)" fill="#B72C27" cx="50.9" cy="51.3" rx="8.1" ry="8.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -26.8478 64.8504)" opacity="0.8" fill="#575757" cx="64.9" cy="64.8" rx="6" ry="6"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -14.8482 36.8056)" opacity="0.8" fill="#575757" cx="37" cy="36.3" rx="6" ry="6"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -35.0058 45.1552)" opacity="0.8" fill="#B72C27" cx="37" cy="64.8" rx="6" ry="6"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -39.7797 58.6393)" opacity="0.6" fill="#575757" cx="50.9" cy="77.3" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -31.9718 77.4892)" opacity="0.6" fill="#575757" cx="77.6" cy="77.3" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -10.2455 23.1846)" opacity="0.6" fill="#575757" cx="22.9" cy="24" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -21.9216 19.7291)" opacity="0.4" fill="#575757" cx="12.9" cy="36.3" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -42.0792 28.0786)" opacity="0.4" fill="#575757" cx="12.9" cy="64.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -5.9013 13.0932)" opacity="0.4" fill="#575757" cx="12.9" cy="13.7" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -36.6571 89.1618)" opacity="0.4" fill="#575757" cx="89.3" cy="88.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -43.8159 71.8788)" opacity="0.4" fill="#575757" cx="64.9" cy="88.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -51.9739 52.1836)" opacity="0.4" fill="#575757" cx="37" cy="88.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -59.0473 35.107)" opacity="0.4" fill="#575757" cx="12.9" cy="88.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 16.4889 67.148)" opacity="0.4" fill="#B72C27" cx="89.3" cy="13.7" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -27.5489 30.3519)" opacity="0.6" fill="#B72C27" cx="22.9" cy="48.4" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -47.9896 38.8187)" opacity="0.6" fill="#575757" cx="22.9" cy="77.3" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -6.6902 56.5008)" opacity="0.8" fill="#B72C27" cx="64.9" cy="36.3" rx="6" ry="6"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -2.0355 43.0052)" opacity="0.6" fill="#575757" cx="50.9" cy="24" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -19.6889 82.1333)" opacity="0.4" fill="#575757" cx="89.3" cy="64.8" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 0.4686 73.7838)" opacity="0.4" fill="#575757" cx="89.3" cy="36.3" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 1.1721 30.1698)" opacity="0.4" fill="#575757" cx="37" cy="13.7" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 9.3301 49.865)" opacity="0.4" fill="#575757" cx="64.9" cy="13.7" rx="2.9" ry="2.9"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 -14.2779 70.1602)" opacity="0.6" fill="#575757" cx="77.6" cy="52.3" rx="4.1" ry="4.1"/>
+
+		<ellipse transform="matrix(0.7071 -0.7071 0.7071 0.7071 5.7724 61.8551)" opacity="0.6" fill="#B72C27" cx="77.6" cy="24" rx="4.1" ry="4.1"/>
+</g>
+</svg>

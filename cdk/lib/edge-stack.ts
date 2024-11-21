@@ -71,22 +71,22 @@ export class EdgeStack extends ExtendedStack {
     );
 
     const rootDomainName = new DomainName({
+      prefix: 'ask-bob',
       zone: props.zone,
     });
-
-    const domainName = new DomainName({
-      prefix: 'www',
+    const altDomainName = new DomainName({
+      prefix: 'askbob',
       zone: props.zone,
     });
 
     const certificate = rootDomainName.createCertificate(this, {
-      subjectAlternativeNames: [domainName.toString()],
+      subjectAlternativeNames: [altDomainName.toString()],
     });
 
     // Create the CloudFront distribution
     const distribution = new DistributionBuilder(this, 'Default')
-      .domainName(domainName)
       .domainName(rootDomainName)
+      .domainName(altDomainName)
       .certificate(certificate)
       .behavior(appOrigin)
       .apiDefaults(['X-Qrl']) // headers used by QwikJS RPC
@@ -126,8 +126,8 @@ export class EdgeStack extends ExtendedStack {
 
     // Point DNS to the CloudFront distribution
     const target = new CloudFrontTarget(distribution);
-    domainName.createARecord(this, RecordTarget.fromAlias(target));
     rootDomainName.createARecord(this, RecordTarget.fromAlias(target));
+    altDomainName.createARecord(this, RecordTarget.fromAlias(target));
 
     this.outputParameter('Endpoint', `https://${rootDomainName.toString()}`);
 

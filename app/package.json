@@ -31,8 +31,11 @@
   },
   "devDependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.697.0",
+    "@aws-sdk/client-dynamodb": "^3.696.0",
+    "@aws-sdk/lib-dynamodb": "^3.696.0",
     "@builder.io/qwik": "^1.9.1",
     "@builder.io/qwik-city": "^1.9.1",
+    "@nr1e/logging": "^1.4.1",
     "@types/eslint": "8.56.10",
     "@types/node": "20.14.11",
     "@typescript-eslint/eslint-plugin": "7.16.1",

@@ -8,6 +8,7 @@ import {Duration, Fn, RemovalPolicy} from 'aws-cdk-lib';
 import {CloudFrontBucketV2} from 'truemark-cdk-lib/aws-s3';
 import * as path from 'path';
 import {Bucket, IBucket} from 'aws-cdk-lib/aws-s3';
+import {getBedrockStackParameters} from './bedrock-stack';
 
 export enum AppStackParameterExport {
   FunctionUrl = 'FunctionUrl',
@@ -30,6 +31,10 @@ export interface AppStackProps extends ExtendedStackProps {
    * The options for the data stack parameter export.
    */
   readonly dataStackParameterExportOptions: ParameterStoreOptions;
+  /**
+   * The options for the bedrock stack parameter export.
+   */
+  readonly bedrockStackParameterExportOptions: ParameterStoreOptions;
 }
 
 /**
@@ -44,11 +49,18 @@ export class AppStack extends ExtendedStack {
       props.dataStackParameterExportOptions,
     );
 
+    const bedrockStackParameters = getBedrockStackParameters(
+      this,
+      props.bedrockStackParameterExportOptions,
+    );
+
     // Create the lambda function to serve the dynamic content using QwikJS
     const fn = new AppFunction(this, 'UiFunction', {
       logLevel: props.logLevel,
       origin: `https://${props.zone}`,
       dataTable: dataStackParameters.dataTable,
+      agentId: bedrockStackParameters.agentId,
+      agentAliasId: bedrockStackParameters.agentAliasId,
     });
     this.exportParameter(
       AppStackParameterExport.FunctionUrl,

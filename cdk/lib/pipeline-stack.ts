@@ -21,8 +21,9 @@ import {ComputeType} from 'aws-cdk-lib/aws-codebuild';
 import {DataStack} from './data-stack';
 import {GraphStack} from './graph-stack';
 import {AppStack} from './app-stack';
-import {CodeExtractStack} from './code-extract-stack';
 import {EdgeStack} from './edge-stack';
+import {BedrockStack} from './bedrock-stack';
+import {GraphSupportStack} from './graph-support-stack';
 
 /**
  * Properties for the PipelineStack.
@@ -65,19 +66,44 @@ export class PipelineStack extends ExtendedStack {
     });
     pipeline.addStage(stageData);
 
-    // TODO Add graph support
+    const stageBedrock = new SingleStackStage(this, `${id}-StageBedrock`, {
+      id: 'Bedrock',
+      cls: BedrockStack,
+      props: {
+        dataStackParameterExportOptions: stageData.stack.parameterExportOptions,
+        crawlerSeedUrls: ['https://truemark.io'],
+        crawlerInclusionFilters: ['.*truemark\\.io.*'],
+      },
+      env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
+    });
+    pipeline.addStage(stageBedrock);
 
-    const stageWave = pipeline.addWave('StageWave');
+    const stageGraphSupportStack = new SingleStackStage(
+      this,
+      `${id}-StageGraphSupport`,
+      {
+        id: 'GraphSupport',
+        cls: GraphSupportStack,
+        props: {
+          zone: 'stage.truemark.io',
+        },
+        env: {account: AwsAccount.Stage, region: AwsRegion.Virginia},
+      },
+    );
+    pipeline.addStage(stageGraphSupportStack);
 
     const stageGraphStack = new SingleStackStage(this, `${id}-StageGraph`, {
       id: 'Graph',
       cls: GraphStack,
       props: {
         zone: 'stage.truemark.io',
+        graphApiName: 'AskBobStage',
+        graphSupportStackParameterExportOptions:
+          stageGraphSupportStack.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
     });
-    stageWave.addStage(stageGraphStack);
+    pipeline.addStage(stageGraphStack);
 
     const stageApp = new SingleStackStage(this, `${id}-StageApp`, {
       id: 'App',
@@ -86,22 +112,12 @@ export class PipelineStack extends ExtendedStack {
         zone: Route53Zone.Stage,
         logLevel: 'debug',
         dataStackParameterExportOptions: stageData.stack.parameterExportOptions,
+        bedrockStackParameterExportOptions:
+          stageBedrock.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
     });
-    stageWave.addStage(stageApp);
-
-    const stageCodeExtract = new SingleStackStage(
-      this,
-      `${id}-StageCodeExtract`,
-      {
-        id: 'CodeExtract',
-        cls: CodeExtractStack,
-        props: {},
-        env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
-      },
-    );
-    stageWave.addStage(stageCodeExtract);
+    pipeline.addStage(stageApp);
 
     const stageEdge = new SingleStackStage(this, `${id}-StageEdge`, {
       id: 'Edge',
@@ -125,19 +141,44 @@ export class PipelineStack extends ExtendedStack {
     });
     pipeline.addStage(prodData);
 
-    // TODO Add graph support
+    const prodBedrock = new SingleStackStage(this, `${id}-ProdBedrock`, {
+      id: 'Bedrock',
+      cls: BedrockStack,
+      props: {
+        dataStackParameterExportOptions: prodData.stack.parameterExportOptions,
+        crawlerSeedUrls: ['https://truemark.io'],
+        crawlerInclusionFilters: ['.*truemark\\.io.*'],
+      },
+      env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
+    });
+    pipeline.addStage(prodBedrock);
 
-    const prodWave = pipeline.addWave('ProdWave');
+    const prodGraphSupportStack = new SingleStackStage(
+      this,
+      `${id}-ProdGraphSupport`,
+      {
+        id: 'GraphSupport',
+        cls: GraphSupportStack,
+        props: {
+          zone: 'truemark.io',
+        },
+        env: {account: AwsAccount.Prod, region: AwsRegion.Virginia},
+      },
+    );
+    pipeline.addStage(prodGraphSupportStack);
 
     const prodGraphStack = new SingleStackStage(this, `${id}-ProdGraph`, {
       id: 'Graph',
       cls: GraphStack,
       props: {
         zone: 'truemark.io',
+        graphApiName: 'AskBobProd',
+        graphSupportStackParameterExportOptions:
+          prodGraphSupportStack.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
     });
-    prodWave.addStage(prodGraphStack);
+    pipeline.addStage(prodGraphStack);
 
     const prodApp = new SingleStackStage(
       this,
@@ -151,23 +192,13 @@ export class PipelineStack extends ExtendedStack {
           logLevel: 'info',
           dataStackParameterExportOptions:
             prodData.stack.parameterExportOptions,
+          bedrockStackParameterExportOptions:
+            prodBedrock.stack.parameterExportOptions,
         },
         env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
       },
     );
-    prodWave.addStage(prodApp);
-
-    const prodCodeExtract = new SingleStackStage(
-      this,
-      `${id}-ProdCodeExtract`,
-      {
-        id: 'CodeExtract',
-        cls: CodeExtractStack,
-        props: {},
-        env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
-      },
-    );
-    prodWave.addStage(prodCodeExtract);
+    pipeline.addStage(prodApp);
 
     const prodEdge = new SingleStackStage(this, `${id}-ProdEdge`, {
       id: 'Edge',

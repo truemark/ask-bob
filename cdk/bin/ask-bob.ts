@@ -9,6 +9,7 @@ import {RemovalPolicy} from 'aws-cdk-lib';
 import {AppStack} from '../lib/app-stack';
 import {BedrockStack} from '../lib/bedrock-stack';
 import {EdgeStack} from '../lib/edge-stack';
+import {GraphStack} from '../lib/graph-stack';
 
 const app = new ExtendedApp({
   standardTags: {
@@ -46,18 +47,11 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     removalPolicy: RemovalPolicy.DESTROY,
     env: {account: app.account, region: AwsRegion.Oregon},
   });
-  new GraphSupportStack(app, 'AskBobGraphSupport', {
+  const graphSupportStack = new GraphSupportStack(app, 'AskBobGraphSupport', {
     zone: `${zonePrefix}.dev.truemark.io`,
     env: {account: app.account, region: AwsRegion.Virginia},
   });
-  // TODO Add graph stack
-  new AppStack(app, 'AskBobApp', {
-    zone: `${zonePrefix}.dev.truemark.io`,
-    logLevel: 'trace',
-    dataStackParameterExportOptions: dataStack.parameterExportOptions,
-    env: {account: app.account, region: AwsRegion.Oregon},
-  });
-  new BedrockStack(app, 'AskBobBedrock', {
+  const bedrockStack = new BedrockStack(app, 'AskBobBedrock', {
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     crawlerSeedUrls: ['https://truemark.io'],
     crawlerInclusionFilters: ['.*truemark\\.io.*'],
@@ -73,9 +67,23 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
           ],
     env: {account: app.account, region: AwsRegion.Oregon},
   });
+  new GraphStack(app, 'AskBobGraph', {
+    graphSupportStackParameterExportOptions:
+      graphSupportStack.parameterExportOptions,
+    zone: `${zonePrefix}.dev.truemark.io`,
+    graphApiName: 'ask-bob',
+    env: {account: app.account, region: AwsRegion.Oregon},
+  });
+  const appStack = new AppStack(app, 'AskBobApp', {
+    zone: `${zonePrefix}.dev.truemark.io`,
+    logLevel: 'trace',
+    dataStackParameterExportOptions: dataStack.parameterExportOptions,
+    bedrockStackParameterExportOptions: bedrockStack.parameterExportOptions,
+    env: {account: app.account, region: AwsRegion.Oregon},
+  });
   new EdgeStack(app, 'AskBobEdge', {
     zone: `${zonePrefix}.dev.truemark.io`,
-    appStackParameterExportOptions: dataStack.parameterExportOptions,
+    appStackParameterExportOptions: appStack.parameterExportOptions,
     env: {account: app.account, region: AwsRegion.Virginia},
   });
 }
