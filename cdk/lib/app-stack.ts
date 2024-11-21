@@ -9,21 +9,21 @@ import {CloudFrontBucketV2} from 'truemark-cdk-lib/aws-s3';
 import * as path from 'path';
 import {Bucket, IBucket} from 'aws-cdk-lib/aws-s3';
 
-export enum FrontendStackParameterExport {
+export enum AppStackParameterExport {
   FunctionUrl = 'FunctionUrl',
   ContentBucketArn = 'ContentBucketArn',
 }
 
 /**
- * Properties for the FrontendStack.
+ * Properties for the AppStack.
  */
-export interface FrontendStackProps extends ExtendedStackProps {
+export interface AppStackProps extends ExtendedStackProps {
   /**
-   * The zone for the frontend.
+   * The zone for the app.
    */
   readonly zone: string;
   /**
-   * The log level for the frontend.
+   * The log level for the app.
    */
   readonly logLevel: LogLevel;
   /**
@@ -33,10 +33,10 @@ export interface FrontendStackProps extends ExtendedStackProps {
 }
 
 /**
- * Deploys frontend resources to serve the user interface.
+ * Deploys app resources to serve the user interface.
  */
-export class FrontendStack extends ExtendedStack {
-  constructor(scope: Construct, id: string, props: FrontendStackProps) {
+export class AppStack extends ExtendedStack {
+  constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
     const dataStackParameters = getDataStackParameters(
@@ -51,7 +51,7 @@ export class FrontendStack extends ExtendedStack {
       dataTable: dataStackParameters.dataTable,
     });
     this.exportParameter(
-      FrontendStackParameterExport.FunctionUrl,
+      AppStackParameterExport.FunctionUrl,
       fn.functionUrl.url,
     );
 
@@ -61,7 +61,7 @@ export class FrontendStack extends ExtendedStack {
       autoDeleteObjects: true,
     });
     this.exportParameter(
-      FrontendStackParameterExport.ContentBucketArn,
+      AppStackParameterExport.ContentBucketArn,
       contentBucket.bucketArn,
     );
 
@@ -89,7 +89,7 @@ export class FrontendStack extends ExtendedStack {
   }
 }
 
-export interface FrontendStackParameters {
+export interface AppStackParameters {
   readonly store: ParameterStore;
   readonly functionUrl: string;
   readonly functionOrigin: string;
@@ -102,20 +102,18 @@ export interface FrontendStackParameters {
  * @param scope the scope to create constructs in
  * @param options the parameter store options
  */
-export function getFrontendStackParameters(
+export function getAppStackParameters(
   scope: Construct,
   options: ParameterStoreOptions,
-): FrontendStackParameters {
-  const store = new ParameterStore(scope, 'FrontendStackParameters', options);
-  const contentBucketArn = store.read(
-    FrontendStackParameterExport.ContentBucketArn,
-  );
+): AppStackParameters {
+  const store = new ParameterStore(scope, 'appStackParameters', options);
+  const contentBucketArn = store.read(AppStackParameterExport.ContentBucketArn);
   const contentBucket = Bucket.fromBucketAttributes(scope, 'Content', {
     bucketArn: contentBucketArn,
     region: store.region,
   });
   // We just need the origin for CloudFront, not the entire URL
-  const functionUrl = store.read(FrontendStackParameterExport.FunctionUrl);
+  const functionUrl = store.read(AppStackParameterExport.FunctionUrl);
   // Split the URL by '//' to separate the 'https:' prefix
   const splitByDoubleSlash = Fn.split('//', functionUrl);
   // Select the second part of the split (the URL without 'https:')

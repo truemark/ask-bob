@@ -16,7 +16,7 @@ import {
   Invalidation,
   RobotsBehavior,
 } from 'truemark-cdk-lib/aws-cloudfront';
-import {getFrontendStackParameters} from './frontend-stack';
+import {getAppStackParameters} from './app-stack';
 
 /**
  * Properties for the EdgeStack.
@@ -35,9 +35,9 @@ export interface EdgeStackProps extends ExtendedStackProps {
    */
   readonly invalidate?: boolean;
   /**
-   * The frontend stack parameter export options.
+   * The app stack parameter export options.
    */
-  readonly frontendStackParameterExportOptions: ParameterStoreOptions;
+  readonly appStackParameterExportOptions: ParameterStoreOptions;
 }
 
 /**
@@ -47,28 +47,25 @@ export class EdgeStack extends ExtendedStack {
   constructor(scope: Construct, id: string, props: EdgeStackProps) {
     super(scope, id, props);
 
-    const frontendStackParameters = getFrontendStackParameters(
+    const appStackParameters = getAppStackParameters(
       this,
-      props.frontendStackParameterExportOptions,
+      props.appStackParameterExportOptions,
     );
 
-    // Create the origin to hit the site lambda function found in the frontend stack
-    const frontendOrigin = new HttpOrigin(
-      frontendStackParameters.functionOrigin,
-      {
-        originId: 'frontend-function-origin',
-        protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-        originSslProtocols: [OriginSslPolicy.TLS_V1_2],
-        readTimeout: Duration.seconds(30),
-        keepaliveTimeout: Duration.seconds(60),
-      },
-    );
+    // Create the origin to hit the site lambda function found in the app stack
+    const appOrigin = new HttpOrigin(appStackParameters.functionOrigin, {
+      originId: 'app-function-origin',
+      protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+      originSslProtocols: [OriginSslPolicy.TLS_V1_2],
+      readTimeout: Duration.seconds(30),
+      keepaliveTimeout: Duration.seconds(60),
+    });
 
-    // Create the origin to hit the content bucket found in the frontend stack
+    // Create the origin to hit the content bucket found in the app stack
     const contentOrigin = S3BucketOrigin.withOriginAccessControl(
-      frontendStackParameters.contentBucket,
+      appStackParameters.contentBucket,
       {
-        originId: 'frontend-content-origin',
+        originId: 'app-content-origin',
         originAccessLevels: [AccessLevel.READ],
       },
     );
@@ -91,7 +88,7 @@ export class EdgeStack extends ExtendedStack {
       .domainName(domainName)
       .domainName(rootDomainName)
       .certificate(certificate)
-      .behavior(frontendOrigin)
+      .behavior(appOrigin)
       .apiDefaults(['X-Qrl']) // headers used by QwikJS RPC
       .redirectFunction({
         apexDomain: rootDomainName, // Redirect to the root domain from www

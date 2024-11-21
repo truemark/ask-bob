@@ -20,7 +20,7 @@ import {
 import {ComputeType} from 'aws-cdk-lib/aws-codebuild';
 import {DataStack} from './data-stack';
 import {GraphStack} from './graph-stack';
-import {FrontendStack} from './frontend-stack';
+import {AppStack} from './app-stack';
 import {CodeExtractStack} from './code-extract-stack';
 import {EdgeStack} from './edge-stack';
 
@@ -79,9 +79,9 @@ export class PipelineStack extends ExtendedStack {
     });
     stageWave.addStage(stageGraphStack);
 
-    const stageFrontend = new SingleStackStage(this, `${id}-StageFrontend`, {
-      id: 'Frontend',
-      cls: FrontendStack,
+    const stageApp = new SingleStackStage(this, `${id}-StageApp`, {
+      id: 'App',
+      cls: AppStack,
       props: {
         zone: Route53Zone.Stage,
         logLevel: 'debug',
@@ -89,7 +89,7 @@ export class PipelineStack extends ExtendedStack {
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
     });
-    stageWave.addStage(stageFrontend);
+    stageWave.addStage(stageApp);
 
     const stageCodeExtract = new SingleStackStage(
       this,
@@ -108,8 +108,7 @@ export class PipelineStack extends ExtendedStack {
       cls: EdgeStack,
       props: {
         zone: Route53Zone.Stage,
-        frontendStackParameterExportOptions:
-          stageFrontend.stack.parameterExportOptions,
+        appStackParameterExportOptions: stageApp.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Virginia},
     });
@@ -140,17 +139,23 @@ export class PipelineStack extends ExtendedStack {
     });
     prodWave.addStage(prodGraphStack);
 
-    const prodFrontend = new SingleStackStage(this, `${id}-ProdFrontend`, {
-      id: 'Frontend',
-      cls: FrontendStack,
-      props: {
-        zone: Route53Zone.Prod,
-        logLevel: 'info',
-        dataStackParameterExportOptions: prodData.stack.parameterExportOptions,
+    const prodApp = new SingleStackStage(
+      this,
+      `${id}-ProdApp
+    `,
+      {
+        id: 'App',
+        cls: AppStack,
+        props: {
+          zone: Route53Zone.Prod,
+          logLevel: 'info',
+          dataStackParameterExportOptions:
+            prodData.stack.parameterExportOptions,
+        },
+        env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
       },
-      env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
-    });
-    prodWave.addStage(prodFrontend);
+    );
+    prodWave.addStage(prodApp);
 
     const prodCodeExtract = new SingleStackStage(
       this,
@@ -169,8 +174,7 @@ export class PipelineStack extends ExtendedStack {
       cls: EdgeStack,
       props: {
         zone: Route53Zone.Prod,
-        frontendStackParameterExportOptions:
-          prodFrontend.stack.parameterExportOptions,
+        appStackParameterExportOptions: prodApp.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Prod, region: AwsRegion.Virginia},
     });

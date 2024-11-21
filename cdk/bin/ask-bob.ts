@@ -6,7 +6,7 @@ import {PipelineStack} from '../lib/pipeline-stack';
 import {GraphSupportStack} from '../lib/graph-support-stack';
 import {DataStack} from '../lib/data-stack';
 import {RemovalPolicy} from 'aws-cdk-lib';
-import {FrontendStack} from '../lib/frontend-stack';
+import {AppStack} from '../lib/app-stack';
 import {BedrockStack} from '../lib/bedrock-stack';
 import {EdgeStack} from '../lib/edge-stack';
 
@@ -51,7 +51,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     env: {account: app.account, region: AwsRegion.Virginia},
   });
   // TODO Add graph stack
-  new FrontendStack(app, 'AskBobFrontend', {
+  new AppStack(app, 'AskBobApp', {
     zone: `${zonePrefix}.dev.truemark.io`,
     logLevel: 'trace',
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
@@ -75,7 +75,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
   });
   new EdgeStack(app, 'AskBobEdge', {
     zone: `${zonePrefix}.dev.truemark.io`,
-    frontendStackParameterExportOptions: dataStack.parameterExportOptions,
+    appStackParameterExportOptions: dataStack.parameterExportOptions,
     env: {account: app.account, region: AwsRegion.Virginia},
   });
 }
