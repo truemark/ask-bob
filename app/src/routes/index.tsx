@@ -1,4 +1,10 @@
-import {$, component$, sync$, useSignal} from '@builder.io/qwik';
+import {
+  $,
+  component$,
+  sync$,
+  useSignal,
+  useVisibleTask$,
+} from '@builder.io/qwik';
 import {routeLoader$, server$, type DocumentHead} from '@builder.io/qwik-city';
 import UniversalLayout from '~/components/universal-layout';
 import LogoLight from '~/components/images/logo-light';
@@ -166,6 +172,10 @@ export const useConfigData = routeLoader$(
   },
 );
 
+// export const useGetClientIp = routeLoader$(({clientConn}) => {
+//   return {ip: clientConn.ip};
+// });
+
 function encodeAppSyncCredentials(url: URL, apiKey: string) {
   const creds = {
     'host': url.host,
@@ -235,12 +245,16 @@ export default component$(() => {
       if (data.type === 'data') {
         if (data.payload.data.addMessage) {
           const message = data.payload.data.addMessage;
-          console.log('Moo', message);
-          document.getElementById('content')!.innerHTML +=
-            `<div class="pb-4 pt-4 flex">
-                <div class="pr-4 font-semibold ${message.handle === 'Bob' ? 'text-brand-primary' : 'text-neutral-250'}">${message.handle}:</div>
+          const contentElement = document.getElementById('content');
+          const messageElement = document.createElement('div');
+          messageElement.innerHTML += `<div class="pb-4 pt-4 flex">
+                <div class="pr-4 font-semibold ${message.handle === 'Bob' ? 'text-brand-primary' : message.handle !== handleSignal.value ? 'text-yellow-600' : 'text-neutral-250'}">${message.handle}:</div>
                 <div>${message.body}</div>
              </div>`;
+          if (contentElement) {
+            contentElement.appendChild(messageElement);
+            messageElement.scrollIntoView({behavior: 'smooth', block: 'end'});
+          }
         }
       }
     }
@@ -266,6 +280,17 @@ export default component$(() => {
     onMessage$,
     onClose$,
   });
+
+  useVisibleTask$(() => {
+    document.getElementById('editor')?.focus();
+  });
+
+  // useEffect(() => {
+  //   const element = document.getElementById('content');
+  //   if (element) {
+  //     element.scrollTop = element.scrollHeight;
+  //   }
+  // }, []);
 
   return (
     <UniversalLayout class="bg-neutral-850 text-neutral-400">

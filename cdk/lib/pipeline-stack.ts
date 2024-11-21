@@ -118,6 +118,8 @@ export class PipelineStack extends ExtendedStack {
         dataStackParameterExportOptions: stageData.stack.parameterExportOptions,
         bedrockStackParameterExportOptions:
           stageBedrock.stack.parameterExportOptions,
+        graphStackParameterExportOptions:
+          stageGraphStack.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Oregon},
     });
@@ -202,6 +204,8 @@ export class PipelineStack extends ExtendedStack {
             prodData.stack.parameterExportOptions,
           bedrockStackParameterExportOptions:
             prodBedrock.stack.parameterExportOptions,
+          graphStackParameterExportOptions:
+            prodGraphStack.stack.parameterExportOptions,
         },
         env: {account: AwsAccount.Prod, region: AwsRegion.Oregon},
       },

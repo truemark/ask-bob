@@ -27,6 +27,9 @@ export enum GraphStackParameterExport {
   MessageQueueArn = 'MessageQueueArn',
   MessageQueueUrl = 'MessageQueueUrl',
   MessageQueueName = 'MessageQueueName',
+  AppSyncEndpoint = 'AppSyncEndpoint',
+  AppSyncRealtimeEndpoint = 'AppSyncRealtimeEndpoint',
+  AppSyncApiKey = 'AppSyncApiKey',
 }
 
 function capitalizeFirstLetter(input: string): string {
@@ -150,6 +153,18 @@ export class GraphStack extends ExtendedStack {
       //   SYSTEM_CLIENT_IDS: props.systemClientIds.join(','),
       // },
     });
+    this.exportAndOutputParameter(
+      GraphStackParameterExport.AppSyncEndpoint,
+      `https://${domainName.toString()}/graphql`,
+    );
+    this.exportAndOutputParameter(
+      GraphStackParameterExport.AppSyncRealtimeEndpoint,
+      `wss://${domainName.toString()}/graphql/realtime`,
+    );
+    this.exportAndOutputParameter(
+      GraphStackParameterExport.AppSyncApiKey,
+      api.apiKey!,
+    );
 
     const responseMappingTemplate = MappingTemplate.fromString(
       '#if($ctx.result && $ctx.result.errorType)\n' +
@@ -203,6 +218,9 @@ export class GraphStack extends ExtendedStack {
 export interface GraphStackParameters {
   readonly store: ParameterStore;
   readonly messageQueue: IQueue;
+  readonly appSyncEndpoint: string;
+  readonly appSyncRealtimeEndpoint: string;
+  readonly appSyncApiKey: string;
 }
 
 export function getGraphStackParameters(
@@ -219,5 +237,10 @@ export function getGraphStackParameters(
   return {
     store,
     messageQueue,
+    appSyncEndpoint: store.read(GraphStackParameterExport.AppSyncEndpoint),
+    appSyncRealtimeEndpoint: store.read(
+      GraphStackParameterExport.AppSyncRealtimeEndpoint,
+    ),
+    appSyncApiKey: store.read(GraphStackParameterExport.AppSyncApiKey),
   };
 }

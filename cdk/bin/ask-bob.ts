@@ -67,7 +67,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
           ],
     env: {account: app.account, region: AwsRegion.Oregon},
   });
-  new GraphStack(app, 'AskBobGraph', {
+  const graphStack = new GraphStack(app, 'AskBobGraph', {
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     graphSupportStackParameterExportOptions:
       graphSupportStack.parameterExportOptions,
@@ -82,6 +82,7 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     logLevel: 'trace',
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     bedrockStackParameterExportOptions: bedrockStack.parameterExportOptions,
+    graphStackParameterExportOptions: graphStack.parameterExportOptions,
     env: {account: app.account, region: AwsRegion.Oregon},
   });
   new EdgeStack(app, 'AskBobEdge', {
