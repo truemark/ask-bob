@@ -19,8 +19,8 @@ type Message {
   messageId: String!
   sessionId: String!
   body: String!
-  createdAt: String!
   handle: String!
+  createdAt: String!
 }
 
 schema {
