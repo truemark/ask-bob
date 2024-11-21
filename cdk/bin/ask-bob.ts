@@ -61,6 +61,16 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
     crawlerSeedUrls: ['https://truemark.io'],
     crawlerInclusionFilters: ['.*truemark\\.io.*'],
+    collectionDataAccessPrincipals:
+      app.account === AwsAccount.Ejensen
+        ? [
+            'arn:aws:iam::889335235414:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Administrator_285bb2c5aa971ba3',
+            'arn:aws:iam::889335235414:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Developer_404fe7ee2c0f4497',
+          ]
+        : [
+            'arn:aws:iam::529088296595:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Developer_88725ea0a4e40240',
+            'arn:aws:iam::529088296595:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Administrator_791494459f124403',
+          ],
     env: {account: app.account, region: AwsRegion.Oregon},
   });
   new EdgeStack(app, 'AskBobEdge', {

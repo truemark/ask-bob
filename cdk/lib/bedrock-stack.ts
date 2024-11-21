@@ -1,6 +1,6 @@
 import {ExtendedStack, ExtendedStackProps} from 'truemark-cdk-lib/aws-cdk';
 import {Construct} from 'constructs';
-import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
+import {ParameterStore, ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {
   CfnAccessPolicy,
   CfnCollection,
@@ -22,6 +22,11 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import {getDataStackParameters} from './data-stack';
 import {KnowledgeBaseCollectionIndex} from 'truemark-cdk-lib/aws-bedrock';
+
+export enum BedrockStackParameterExport {
+  AgentId = 'AgentId',
+  AgentAliasId = 'AgentAliasId',
+}
 
 /**
  * Properties for the BedrockStack.
@@ -46,6 +51,11 @@ export interface BedrockStackProps extends ExtendedStackProps {
    * The inclusion filters for the crawler.
    */
   readonly crawlerInclusionFilters: string[];
+
+  /**
+   * Additional principals to allow access to the collection data.
+   */
+  readonly collectionDataAccessPrincipals?: string[];
 }
 
 /**
@@ -157,7 +167,6 @@ export class BedrockStack extends ExtendedStack {
         effect: Effect.ALLOW,
         actions: ['aoss:APIAccessAll'],
         resources: [
-          // '*',
           `arn:aws:aoss:${this.region}:${this.account}:collection/${collection.attrId}`,
         ],
       }),
@@ -185,7 +194,6 @@ export class BedrockStack extends ExtendedStack {
         effect: Effect.ALLOW,
         actions: ['aoss:APIAccessAll'],
         resources: [
-          // '*',
           `arn:aws:aoss:${this.region}:${this.account}:collection/${collection.attrId}`,
         ],
       }),
@@ -242,8 +250,7 @@ export class BedrockStack extends ExtendedStack {
             webKnowledgeBaseRole.roleArn,
             docsIndex.role.roleArn,
             webIndex.role.roleArn,
-            // TODO Move to props. Allows access from the SSO role I use in by dev account.
-            'arn:aws:iam::889335235414:role/aws-reserved/sso.amazonaws.com/us-east-2/AWSReservedSSO_Administrator_285bb2c5aa971ba3',
+            ...(props.collectionDataAccessPrincipals ?? []),
           ],
         },
       ]),
@@ -386,10 +393,42 @@ export class BedrockStack extends ExtendedStack {
         },
       ],
     });
+    this.exportAndOutputParameter(
+      BedrockStackParameterExport.AgentId,
+      agent.attrAgentId,
+    );
 
-    new CfnAgentAlias(this, 'AgentAlias', {
+    const agentAlias = new CfnAgentAlias(this, 'AgentAlias', {
       agentAliasName: 'AskBob',
       agentId: agent.attrAgentId,
     });
+    this.exportAndOutputParameter(
+      BedrockStackParameterExport.AgentAliasId,
+      agentAlias.attrAgentAliasId,
+    );
   }
+}
+
+export interface BedrockStackParameters {
+  readonly store: ParameterStore;
+  readonly agentId: string;
+  readonly agentAliasId: string;
+}
+
+/**
+ * Helper method to pull the stack parameters from the parameter store.
+ *
+ * @param scope the scope to create constructs in
+ * @param options the parameter store options
+ */
+export function getBedrockStackParameters(
+  scope: Construct,
+  options: ParameterStoreOptions,
+): BedrockStackParameters {
+  const store = new ParameterStore(scope, 'BedrockStackParameters', options);
+  return {
+    store,
+    agentId: store.read(BedrockStackParameterExport.AgentId),
+    agentAliasId: store.read(BedrockStackParameterExport.AgentAliasId),
+  };
 }
