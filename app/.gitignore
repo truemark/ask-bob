@@ -1,5 +1,6 @@
 .env
 /coverage
+/adapters/aws-lambda/vite.config.ts.timestamp-*
 
 # Build
 /dist

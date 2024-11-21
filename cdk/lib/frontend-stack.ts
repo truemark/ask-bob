@@ -3,7 +3,7 @@ import {Construct} from 'constructs';
 import {LogLevel} from './globals';
 import {ParameterStore, ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {getDataStackParameters} from './data-stack';
-import {UiFunction} from './ui-function';
+import {AppFunction} from './app-function';
 import {Duration, Fn, RemovalPolicy} from 'aws-cdk-lib';
 import {CloudFrontBucketV2} from 'truemark-cdk-lib/aws-s3';
 import * as path from 'path';
@@ -45,7 +45,7 @@ export class FrontendStack extends ExtendedStack {
     );
 
     // Create the lambda function to serve the dynamic content using QwikJS
-    const fn = new UiFunction(this, 'UiFunction', {
+    const fn = new AppFunction(this, 'UiFunction', {
       logLevel: props.logLevel,
       origin: `https://${props.zone}`,
       dataTable: dataStackParameters.dataTable,
@@ -68,19 +68,19 @@ export class FrontendStack extends ExtendedStack {
     // Deploy the content to the bucket
     contentBucket.deploy([
       {
-        source: path.join('..', 'ui', 'dist'),
+        source: path.join('..', 'app', 'dist'),
         exclude: ['build', 'assets'],
         maxAge: Duration.minutes(1),
         sMaxAge: Duration.minutes(2),
       },
       // {
-      //   source: path.join('..', 'ui', 'dist', 'assets'),
+      //   source: path.join('..', 'app', 'dist', 'assets'),
       //   prefix: 'assets',
       //   maxAge: Duration.days(1),
       //   sMaxAge: Duration.days(7),
       // },
       {
-        source: path.join('..', 'ui', 'dist', 'build'),
+        source: path.join('..', 'app', 'dist', 'build'),
         prefix: 'build',
         maxAge: Duration.days(1),
         sMaxAge: Duration.days(7),

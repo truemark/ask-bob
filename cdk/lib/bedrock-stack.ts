@@ -7,6 +7,8 @@ import {
   CfnSecurityPolicy,
 } from 'aws-cdk-lib/aws-opensearchserverless';
 import {
+  CfnAgent,
+  CfnAgentAlias,
   CfnDataSource,
   CfnKnowledgeBase,
   FoundationModel,
@@ -19,7 +21,7 @@ import {
   ServicePrincipal,
 } from 'aws-cdk-lib/aws-iam';
 import {getDataStackParameters} from './data-stack';
-import {KnowledgeBaseCollectionIndex} from './knowledge-base-collection-index';
+import {KnowledgeBaseCollectionIndex} from 'truemark-cdk-lib/aws-bedrock';
 
 /**
  * Properties for the BedrockStack.
@@ -136,7 +138,14 @@ export class BedrockStack extends ExtendedStack {
     docsKnowledgeBaseRole.addToPolicy(
       new PolicyStatement({
         effect: Effect.ALLOW,
-        actions: ['s3:GetObject', 's3:ListBucket'],
+        actions: ['s3:ListBucket'],
+        resources: ['*'],
+      }),
+    );
+    docsKnowledgeBaseRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['s3:GetObject'],
         resources: [
           `arn:aws:s3:::${dataStackParameters.knowledgeBaseBucket.bucketName}/docs`,
           `arn:aws:s3:::${dataStackParameters.knowledgeBaseBucket.bucketName}/docs/*`,
@@ -328,6 +337,59 @@ export class BedrockStack extends ExtendedStack {
       knowledgeBaseId: webKnowledgeBase.attrKnowledgeBaseId,
       name: 'AskBobWebDataSource',
       dataDeletionPolicy: 'DELETE',
+    });
+
+    const model = FoundationModel.fromFoundationModelId(
+      this,
+      'Mode',
+      FoundationModelIdentifier.ANTHROPIC_CLAUDE_3_5_SONNET_20241022_V2_0,
+    );
+
+    const agentRole = new Role(this, 'AgentRole', {
+      assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
+    });
+    agentRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:InvokeModel'],
+        resources: [`arn:aws:bedrock:${this.region}::foundation-model/*`],
+      }),
+    );
+    agentRole.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ['bedrock:Retrieve', 'bedrock:RetrieveAndGenerate'],
+        resources: [
+          docsKnowledgeBase.attrKnowledgeBaseArn,
+          webKnowledgeBase.attrKnowledgeBaseArn,
+        ],
+      }),
+    );
+
+    const agent = new CfnAgent(this, 'Agent', {
+      agentName: 'AskBob',
+      foundationModel: model.modelId,
+      agentResourceRoleArn: agentRole.roleArn,
+      autoPrepare: true,
+      instruction:
+        "You're an engineer in an AWS partner. You're friendly and helpful. You help answer technical questions.",
+      knowledgeBases: [
+        {
+          description: 'Docs knowledge base',
+          knowledgeBaseId: docsKnowledgeBase.attrKnowledgeBaseId,
+          knowledgeBaseState: 'ENABLED',
+        },
+        {
+          description: 'Web knowledge base',
+          knowledgeBaseId: webKnowledgeBase.attrKnowledgeBaseId,
+          knowledgeBaseState: 'ENABLED',
+        },
+      ],
+    });
+
+    new CfnAgentAlias(this, 'AgentAlias', {
+      agentAliasName: 'AskBob',
+      agentId: agent.attrAgentId,
     });
   }
 }

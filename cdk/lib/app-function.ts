@@ -24,12 +24,12 @@ export interface UiFunctionProps {
 /**
  * Function for serving the QwikJS application.
  */
-export class UiFunction extends ExtendedNodejsFunction {
+export class AppFunction extends ExtendedNodejsFunction {
   readonly functionUrl: FunctionUrl;
   constructor(scope: Construct, id: string, props: UiFunctionProps) {
     super(scope, id, {
       // This assumes the application is build before a cdk synth occurs
-      code: Code.fromAsset(path.join(__dirname, '..', '..', 'ui', 'server')),
+      code: Code.fromAsset(path.join(__dirname, '..', '..', 'app', 'server')),
       handler: 'entry-aws-lambda.qwikApp',
       memorySize: 1024,
       runtime: Runtime.NODEJS_20_X,
