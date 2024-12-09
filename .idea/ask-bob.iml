@@ -17,6 +17,10 @@
       <excludeFolder url="file://$MODULE_DIR$/ui/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/ui/server" />
       <excludeFolder url="file://$MODULE_DIR$/ui/tmp" />
+      <excludePattern pattern="*.d.*" />
+      <excludePattern pattern="*.js" />
+      <excludePattern pattern="*.map" />
+      <excludePattern pattern="**src/*.mjs" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
