@@ -132,7 +132,7 @@ export function getAppStackParameters(
   scope: Construct,
   options: ParameterStoreOptions,
 ): AppStackParameters {
-  const store = new ParameterStore(scope, 'appStackParameters', options);
+  const store = new ParameterStore(scope, 'AppStackParameters', options);
   const contentBucketArn = store.read(AppStackParameterExport.ContentBucketArn);
   const contentBucket = Bucket.fromBucketAttributes(scope, 'Content', {
     bucketArn: contentBucketArn,
