@@ -12,6 +12,9 @@ import {ParameterStore, ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {StandardTableV2} from 'truemark-cdk-lib/aws-dynamodb';
 import {ITableV2} from 'aws-cdk-lib/aws-dynamodb';
 
+/**
+ * Parameters exported by the stack. Set as an enum to prevent typos.
+ */
 export enum DataStackParameterExport {
   KnowledgeBaseBucketName = 'KnowledgeBaseBucketName',
   DataTableName = 'DataTableName',
@@ -75,6 +78,9 @@ export class DataStack extends ExtendedStack {
   }
 }
 
+/**
+ * References exported by the stack.
+ */
 export interface DataStackParameters {
   readonly store: ParameterStore;
   readonly knowledgeBaseBucket: IBucket;
