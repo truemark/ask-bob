@@ -17,6 +17,9 @@
       <excludeFolder url="file://$MODULE_DIR$/ui/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/ui/server" />
       <excludeFolder url="file://$MODULE_DIR$/ui/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/handlers/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/resolvers/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/resolvers/node_modules" />
       <excludePattern pattern="*.d.*" />
       <excludePattern pattern="*.js" />
       <excludePattern pattern="*.map" />

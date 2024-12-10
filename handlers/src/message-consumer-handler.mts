@@ -3,6 +3,7 @@ import * as logging from '@nr1e/logging';
 import {
   BedrockAgentRuntimeClient,
   InvokeAgentCommand,
+  InvokeAgentCommandInput,
 } from '@aws-sdk/client-bedrock-agent-runtime';
 
 function getEnv(name: string): string {
@@ -81,13 +82,14 @@ export const handler = async (event: SQSEvent) => {
           agentAliasId: agentAliasId,
           sessionId: message.sessionId,
           inputText: message.message,
-        }),
+        } as InvokeAgentCommandInput),
       );
       let count = 0;
       if (response.completion) {
         for await (const output of response.completion) {
           if (output.chunk) {
             const content = decoder.decode(output.chunk.bytes);
+            console.log('Sending message', content);
             await sendMessage(content);
             count++;
           }

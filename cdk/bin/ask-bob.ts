@@ -77,7 +77,8 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
     logLevel: 'trace',
     env: {account: app.account, region: AwsRegion.Oregon},
   });
-  const appStack = new AppStack(app, 'AskBobApp', {
+  new AppStack(app, 'AskBobApp', {
+    canaryDeploy: false,
     zone: `${zonePrefix}.dev.truemark.io`,
     logLevel: 'trace',
     dataStackParameterExportOptions: dataStack.parameterExportOptions,
@@ -87,7 +88,6 @@ if (app.account === AwsAccount.Ejensen || app.account === AwsAccount.Dross) {
   });
   new EdgeStack(app, 'AskBobEdge', {
     zone: `${zonePrefix}.dev.truemark.io`,
-    appStackParameterExportOptions: appStack.parameterExportOptions,
     env: {account: app.account, region: AwsRegion.Virginia},
   });
 }

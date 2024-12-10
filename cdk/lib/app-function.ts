@@ -11,11 +11,14 @@ import {Construct} from 'constructs';
 import * as path from 'path';
 import {ITableV2} from 'aws-cdk-lib/aws-dynamodb';
 import {LogLevel} from './globals';
+import {LambdaDeploymentConfig} from 'aws-cdk-lib/aws-codedeploy';
+import {RetentionDays} from 'aws-cdk-lib/aws-logs';
 
 /**
  * Properties for the AppFunction.
  */
 export interface AppFunctionProps {
+  readonly canaryDeploy: boolean;
   readonly logLevel: LogLevel;
   readonly origin: string;
   readonly dataTable: ITableV2;
@@ -37,7 +40,7 @@ export class AppFunction extends ExtendedNodejsFunction {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'app', 'server')),
       handler: 'entry-aws-lambda.qwikApp',
       memorySize: 1024,
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_22_X,
       architecture: Architecture.ARM_64,
       environment: {
         NODE_OPTIONS: '--enable-source-maps',
@@ -50,6 +53,8 @@ export class AppFunction extends ExtendedNodejsFunction {
         APP_SYNC_REALTIME_ENDPOINT: props.appSyncRealtimeEndpoint,
         APP_SYNC_API_KEY: props.appSyncApiKey,
       },
+      // TODO Introduce alarms later
+      createAlarms: false,
       criticalAlarmOptions: {
         maxLogCount: 0, // Disables a default alarm that would be created
       },
@@ -57,8 +62,13 @@ export class AppFunction extends ExtendedNodejsFunction {
         maxLogCount: 0, // Disables a default alarm that would be created
       },
       deploymentOptions: {
-        createDeployment: false, // We don't need canary deploys for this website
+        createDeployment: props.canaryDeploy,
+        includeCriticalAlarms: props.canaryDeploy ? true : undefined,
+        deploymentConfig: props.canaryDeploy
+          ? LambdaDeploymentConfig.ALL_AT_ONCE
+          : undefined,
       },
+      logRetention: RetentionDays.THREE_DAYS,
     });
     // Expose the function URL as an output
     this.functionUrl = this.addFunctionUrl({

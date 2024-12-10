@@ -1,11 +1,14 @@
 import {ExtendedStack, ExtendedStackProps} from 'truemark-cdk-lib/aws-cdk';
 import {Construct} from 'constructs';
-import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
-import {HttpOrigin, S3BucketOrigin} from 'aws-cdk-lib/aws-cloudfront-origins';
+import {HttpOrigin} from 'aws-cdk-lib/aws-cloudfront-origins';
 import {
-  AccessLevel,
+  AllowedMethods,
+  CachePolicy,
+  LambdaEdgeEventType,
   OriginProtocolPolicy,
+  OriginRequestPolicy,
   OriginSslPolicy,
+  ViewerProtocolPolicy,
 } from 'aws-cdk-lib/aws-cloudfront';
 import {Duration} from 'aws-cdk-lib';
 import {DomainName} from 'truemark-cdk-lib/aws-route53';
@@ -16,7 +19,7 @@ import {
   Invalidation,
   RobotsBehavior,
 } from 'truemark-cdk-lib/aws-cloudfront';
-import {getAppStackParameters} from './app-stack';
+import {BestOriginFunction} from './best-origin-function';
 
 /**
  * Properties for the EdgeStack.
@@ -34,10 +37,6 @@ export interface EdgeStackProps extends ExtendedStackProps {
    * Whether to invalidate the CloudFront distribution. Default is `false`.
    */
   readonly invalidate?: boolean;
-  /**
-   * The app stack parameter export options.
-   */
-  readonly appStackParameterExportOptions: ParameterStoreOptions;
 }
 
 /**
@@ -46,29 +45,6 @@ export interface EdgeStackProps extends ExtendedStackProps {
 export class EdgeStack extends ExtendedStack {
   constructor(scope: Construct, id: string, props: EdgeStackProps) {
     super(scope, id, props);
-
-    const appStackParameters = getAppStackParameters(
-      this,
-      props.appStackParameterExportOptions,
-    );
-
-    // Create the origin to hit the site lambda function found in the app stack
-    const appOrigin = new HttpOrigin(appStackParameters.functionOrigin, {
-      originId: 'app-function-origin',
-      protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
-      originSslProtocols: [OriginSslPolicy.TLS_V1_2],
-      readTimeout: Duration.seconds(30),
-      keepaliveTimeout: Duration.seconds(60),
-    });
-
-    // Create the origin to hit the content bucket found in the app stack
-    const contentOrigin = S3BucketOrigin.withOriginAccessControl(
-      appStackParameters.contentBucket,
-      {
-        originId: 'app-content-origin',
-        originAccessLevels: [AccessLevel.READ],
-      },
-    );
 
     const rootDomainName = new DomainName({
       prefix: 'ask-bob',
@@ -83,8 +59,27 @@ export class EdgeStack extends ExtendedStack {
       subjectAlternativeNames: [altDomainName.toString()],
     });
 
+    const bestOriginFunction = new BestOriginFunction(
+      this,
+      'BestOriginFunction',
+    );
+
+    const appOrigin = new HttpOrigin(`ask-bob-app-origin.${props.zone}`, {
+      protocolPolicy: OriginProtocolPolicy.HTTPS_ONLY,
+      originSslProtocols: [OriginSslPolicy.TLS_V1_2],
+      readTimeout: Duration.seconds(59),
+      keepaliveTimeout: Duration.seconds(60),
+    });
+
+    const appContentOrigin = new HttpOrigin(
+      `ask-bob-app-content-origin.${props.zone}`,
+      {
+        protocolPolicy: OriginProtocolPolicy.HTTP_ONLY,
+      },
+    );
+
     // Create the CloudFront distribution
-    const distribution = new DistributionBuilder(this, 'Default')
+    const builder = new DistributionBuilder(this, 'Default')
       .domainName(rootDomainName)
       .domainName(altDomainName)
       .certificate(certificate)
@@ -97,32 +92,52 @@ export class EdgeStack extends ExtendedStack {
         noFileExtensionBehavior: 'None', // Not applicable since this is not a static website
         robotsBehavior: props.robotsBehavior ?? 'Disallow', // Apply the /robots.txt behavior so we don't index outside of production
       })
-      // The following paths are specific to QwikJS
-      .behavior(contentOrigin, 'build/*')
-      .s3Defaults()
-      .behavior(contentOrigin, 'images/*')
-      .s3Defaults()
-      .behavior(contentOrigin, 'assets/*')
-      .s3Defaults()
-      .behavior(contentOrigin, 'favicon*')
-      .s3Defaults()
-      .behavior(contentOrigin, 'android-*')
-      .s3Defaults()
-      .behavior(contentOrigin, 'apple-*')
-      .s3Defaults()
-      .behavior(contentOrigin, '404.html')
-      .s3Defaults()
-      .behavior(contentOrigin, 'service-worker.js')
-      .s3Defaults()
-      .behavior(contentOrigin, 'qwik-prefetch-service-worker.js')
-      .s3Defaults()
-      .behavior(contentOrigin, 'q-manifest.json')
-      .s3Defaults()
-      .behavior(contentOrigin, 'manifest.json')
-      .s3Defaults()
-      .behavior(contentOrigin, 'sitemap.xml')
-      .s3Defaults()
-      .toDistribution();
+      .edgeLambdas([
+        {
+          eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+          functionVersion: bestOriginFunction.currentVersion,
+        },
+      ])
+      .behavior(
+        new HttpOrigin(`ask-bob-graph-origin.${props.zone}`),
+        '/graphql',
+      )
+      .allowedMethods(AllowedMethods.ALLOW_ALL)
+      .cachePolicy(CachePolicy.CACHING_DISABLED)
+      .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER)
+      .viewerProtocolPolicy(ViewerProtocolPolicy.HTTPS_ONLY)
+      .edgeLambdas([
+        {
+          eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+          functionVersion: bestOriginFunction.currentVersion,
+        },
+      ]);
+    for (const path of [
+      'build/*',
+      'images/*',
+      'assets/*',
+      'favicon*',
+      'android-*',
+      'apple-*',
+      '404.html',
+      'service-worker.js',
+      'qwik-prefetch-service-worker.js',
+      'q-manifest.json',
+      'manifest.json',
+      'sitemap.xml',
+    ]) {
+      builder
+        .behavior(appContentOrigin, path)
+        .edgeLambdas([
+          {
+            eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+            functionVersion: bestOriginFunction.currentVersion,
+          },
+        ])
+        .s3Defaults();
+    }
+
+    const distribution = builder.toDistribution();
 
     // Point DNS to the CloudFront distribution
     const target = new CloudFrontTarget(distribution);

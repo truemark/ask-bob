@@ -15,7 +15,7 @@ import {
   MappingTemplate,
 } from 'aws-cdk-lib/aws-appsync';
 import {RetentionDays} from 'aws-cdk-lib/aws-logs';
-import {Stack} from 'aws-cdk-lib';
+import {Duration, Stack} from 'aws-cdk-lib';
 import {getDataStackParameters} from './data-stack';
 import {IQueue, Queue} from 'aws-cdk-lib/aws-sqs';
 import {StandardQueue} from 'truemark-cdk-lib/aws-sqs';
@@ -99,6 +99,7 @@ export class GraphStack extends ExtendedStack {
 
     const messageQueue = new StandardQueue(this, 'MessageQueue', {
       fifo: true,
+      receiveMessageWaitTime: Duration.seconds(0),
     });
     this.exportAndOutputParameter(
       GraphStackParameterExport.MessageQueueArn,
@@ -113,6 +114,7 @@ export class GraphStack extends ExtendedStack {
       messageQueue.queueName,
     );
 
+    // TODO Remove this and use BestOriginFunction
     const domainName = new DomainName({
       prefix: 'ask-bob-graph',
       zone: props.zone,

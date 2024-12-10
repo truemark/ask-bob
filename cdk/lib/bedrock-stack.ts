@@ -172,7 +172,7 @@ export class BedrockStack extends ExtendedStack {
       }),
     );
 
-    const webKnowledgeBaseRole = new Role(this, 'WebKnowledgeBaseRole', {
+    const webKnowledgeBaseRole = new Role(this, 'WebsiteKnowledgeBaseRole2', {
       assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
     });
     webKnowledgeBaseRole.addToPolicy(
@@ -297,28 +297,32 @@ export class BedrockStack extends ExtendedStack {
       dataDeletionPolicy: 'DELETE',
     });
 
-    const webKnowledgeBase = new CfnKnowledgeBase(this, 'WebKnowledgeBase', {
-      knowledgeBaseConfiguration: {
-        type: 'VECTOR',
-        vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: embeddingModel.modelArn,
-        },
-      },
-      name: 'AskBobWebKnowledgeBase',
-      roleArn: webKnowledgeBaseRole.roleArn,
-      storageConfiguration: {
-        type: 'OPENSEARCH_SERVERLESS',
-        opensearchServerlessConfiguration: {
-          collectionArn: collection.attrArn,
-          fieldMapping: {
-            metadataField: 'WebMetadata',
-            textField: 'WebText',
-            vectorField: 'WebVector',
+    const webKnowledgeBase = new CfnKnowledgeBase(
+      this,
+      'WebsiteKnowledgeBase',
+      {
+        knowledgeBaseConfiguration: {
+          type: 'VECTOR',
+          vectorKnowledgeBaseConfiguration: {
+            embeddingModelArn: embeddingModel.modelArn,
           },
-          vectorIndexName: webIndex.indexName,
+        },
+        name: 'AskBobWebKnowledgeBase2',
+        roleArn: webKnowledgeBaseRole.roleArn,
+        storageConfiguration: {
+          type: 'OPENSEARCH_SERVERLESS',
+          opensearchServerlessConfiguration: {
+            collectionArn: collection.attrArn,
+            fieldMapping: {
+              metadataField: 'WebMetadata',
+              textField: 'WebText',
+              vectorField: 'WebVector',
+            },
+            vectorIndexName: webIndex.indexName,
+          },
         },
       },
-    });
+    );
     webKnowledgeBase.node.addDependency(webIndex.resource);
 
     // Create a data source to connect the knowledge base with the data

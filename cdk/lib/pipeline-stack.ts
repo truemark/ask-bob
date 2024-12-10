@@ -113,6 +113,7 @@ export class PipelineStack extends ExtendedStack {
       id: 'App',
       cls: AppStack,
       props: {
+        canaryDeploy: false,
         zone: Route53Zone.Stage,
         logLevel: 'debug',
         dataStackParameterExportOptions: stageData.stack.parameterExportOptions,
@@ -130,7 +131,6 @@ export class PipelineStack extends ExtendedStack {
       cls: EdgeStack,
       props: {
         zone: Route53Zone.Stage,
-        appStackParameterExportOptions: stageApp.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Stage, region: AwsRegion.Virginia},
     });
@@ -198,6 +198,7 @@ export class PipelineStack extends ExtendedStack {
         id: 'App',
         cls: AppStack,
         props: {
+          canaryDeploy: true,
           zone: Route53Zone.Prod,
           logLevel: 'info',
           dataStackParameterExportOptions:
@@ -217,7 +218,6 @@ export class PipelineStack extends ExtendedStack {
       cls: EdgeStack,
       props: {
         zone: Route53Zone.Prod,
-        appStackParameterExportOptions: prodApp.stack.parameterExportOptions,
       },
       env: {account: AwsAccount.Prod, region: AwsRegion.Virginia},
     });

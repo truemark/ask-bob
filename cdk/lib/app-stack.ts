@@ -1,25 +1,25 @@
 import {ExtendedStack, ExtendedStackProps} from 'truemark-cdk-lib/aws-cdk';
 import {Construct} from 'constructs';
 import {LogLevel} from './globals';
-import {ParameterStore, ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
+import {ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import {getDataStackParameters} from './data-stack';
 import {AppFunction} from './app-function';
 import {Duration, Fn, RemovalPolicy} from 'aws-cdk-lib';
-import {CloudFrontBucketV2} from 'truemark-cdk-lib/aws-s3';
+import {WebsiteBucket} from 'truemark-cdk-lib/aws-s3';
 import * as path from 'path';
-import {Bucket, IBucket} from 'aws-cdk-lib/aws-s3';
 import {getBedrockStackParameters} from './bedrock-stack';
 import {getGraphStackParameters} from './graph-stack';
-
-export enum AppStackParameterExport {
-  FunctionUrl = 'FunctionUrl',
-  ContentBucketArn = 'ContentBucketArn',
-}
+import {CacheControl} from 'aws-cdk-lib/aws-s3-deployment';
+import {DomainName} from 'truemark-cdk-lib/aws-route53';
 
 /**
  * Properties for the AppStack.
  */
 export interface AppStackProps extends ExtendedStackProps {
+  /**
+   * Whether to deploy the app using canary deployment.
+   */
+  readonly canaryDeploy: boolean;
   /**
    * The zone for the app.
    */
@@ -36,7 +36,6 @@ export interface AppStackProps extends ExtendedStackProps {
    * The options for the bedrock stack parameter export.
    */
   readonly bedrockStackParameterExportOptions: ParameterStoreOptions;
-
   /**
    * The options for the graph stack parameter export.
    */
@@ -67,6 +66,7 @@ export class AppStack extends ExtendedStack {
 
     // Create the lambda function to serve the dynamic content using QwikJS
     const fn = new AppFunction(this, 'AppFunction', {
+      canaryDeploy: props.canaryDeploy,
       logLevel: props.logLevel,
       origin: `https://${props.zone}`,
       dataTable: dataStackParameters.dataTable,
@@ -76,82 +76,54 @@ export class AppStack extends ExtendedStack {
       appSyncRealtimeEndpoint: graphStackParameters.appSyncRealtimeEndpoint,
       appSyncApiKey: graphStackParameters.appSyncApiKey,
     });
-    this.exportParameter(
-      AppStackParameterExport.FunctionUrl,
-      fn.functionUrl.url,
+
+    new DomainName({
+      prefix: 'ask-bob-app-origin',
+      zone: props.zone,
+    }).createLatencyCnameRecord(
+      this,
+      Fn.select(
+        0,
+        Fn.split('/', Fn.select(1, Fn.split('//', fn.functionUrl.url))),
+      ),
     );
 
     // Create the bucket to store static content
-    const contentBucket = new CloudFrontBucketV2(this, 'Content', {
+    const contentBucket = new WebsiteBucket(this, 'Content', {
       removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
     });
-    this.exportParameter(
-      AppStackParameterExport.ContentBucketArn,
-      contentBucket.bucketArn,
-    );
+
+    new DomainName({
+      prefix: 'ask-bob-app-content-origin',
+      zone: props.zone,
+    }).createLatencyCnameRecord(this, contentBucket.bucketWebsiteDomainName);
 
     // Deploy the content to the bucket
     contentBucket.deploy([
       {
-        source: path.join('..', 'app', 'dist'),
+        source: path.join(__dirname, '..', '..', 'app', 'dist'),
         exclude: ['build', 'assets'],
-        maxAge: Duration.minutes(1),
-        sMaxAge: Duration.minutes(2),
+        cacheControl: [
+          CacheControl.maxAge(Duration.minutes(1)),
+          CacheControl.sMaxAge(Duration.minutes(2)),
+        ],
       },
-      // {
-      //   source: path.join('..', 'app', 'dist', 'assets'),
-      //   prefix: 'assets',
-      //   maxAge: Duration.days(1),
-      //   sMaxAge: Duration.days(7),
-      // },
       {
-        source: path.join('..', 'app', 'dist', 'build'),
+        source: path.join(__dirname, '..', '..', 'app', 'dist', 'assets'),
+        prefix: 'assets',
+        cacheControl: [
+          CacheControl.maxAge(Duration.days(1)),
+          CacheControl.sMaxAge(Duration.days(7)),
+        ],
+      },
+      {
+        source: path.join(__dirname, '..', '..', 'app', 'dist', 'build'),
         prefix: 'build',
-        maxAge: Duration.days(1),
-        sMaxAge: Duration.days(7),
+        cacheControl: [
+          CacheControl.maxAge(Duration.days(1)),
+          CacheControl.sMaxAge(Duration.days(7)),
+        ],
       },
     ]);
   }
-}
-
-export interface AppStackParameters {
-  readonly store: ParameterStore;
-  readonly functionUrl: string;
-  readonly functionOrigin: string;
-  readonly contentBucket: IBucket;
-}
-
-/**
- * Helper method to pull the stack parameters from the parameter store
- *
- * @param scope the scope to create constructs in
- * @param options the parameter store options
- */
-export function getAppStackParameters(
-  scope: Construct,
-  options: ParameterStoreOptions,
-): AppStackParameters {
-  const store = new ParameterStore(scope, 'AppStackParameters', options);
-  const contentBucketArn = store.read(AppStackParameterExport.ContentBucketArn);
-  const contentBucket = Bucket.fromBucketAttributes(scope, 'Content', {
-    bucketArn: contentBucketArn,
-    region: store.region,
-  });
-  // We just need the origin for CloudFront, not the entire URL
-  const functionUrl = store.read(AppStackParameterExport.FunctionUrl);
-  // Split the URL by '//' to separate the 'https:' prefix
-  const splitByDoubleSlash = Fn.split('//', functionUrl);
-  // Select the second part of the split (the URL without 'https:')
-  const urlWithoutHttps = Fn.select(1, splitByDoubleSlash);
-  // Split the URL by '/' to separate the trailing '/'
-  const splitBySlash = Fn.split('/', urlWithoutHttps);
-  // Select the first part of the split (the URL without the trailing '/')
-  const functionOrigin = Fn.select(0, splitBySlash);
-  return {
-    store,
-    functionUrl,
-    functionOrigin,
-    contentBucket,
-  };
 }

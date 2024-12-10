@@ -54,7 +54,11 @@ export class MessageConsumerFunction extends ExtendedNodejsFunction {
       },
     });
     props.messageQueue.grantConsumeMessages(this);
-    this.addEventSource(new SqsEventSource(props.messageQueue));
+    this.addEventSource(
+      new SqsEventSource(props.messageQueue, {
+        batchSize: 1,
+      }),
+    );
     this.addToRolePolicy(
       new PolicyStatement({
         effect: Effect.ALLOW,
