@@ -219,15 +219,18 @@ function startSubscription(ws: WebSocket, url: URL, apiKey: string) {
 
 export default component$(() => {
   const configData = useConfigData();
+  const wsStateSignal = useSignal('none'); // connected
   const handleSignal = useSignal(getRandomName());
 
   const onOpen$: OpenEventFunction = $((ev, ws) => {
+    wsStateSignal.value = 'opened';
+    console.log('Websocket Opened', ev.timeStamp);
     ws.send(JSON.stringify({type: 'connection_init'}));
   });
 
   const onError$: ErrorEventFunction = $((ev, ws) => {
-    console.log('Received error');
-
+    wsStateSignal.value = 'errored';
+    console.log('Websocket Error', ev.timeStamp);
     ws.close();
   });
 
@@ -240,9 +243,18 @@ export default component$(() => {
           new URL(configData.value.realtimeEndpoint),
           configData.value.apiKey,
         );
+        wsStateSignal.value = 'connected';
         return;
-      }
-      if (data.type === 'data') {
+      } else if (data.type === 'connection_error') {
+        const code = data.payload.errors[0].errorCode;
+        if (code === 401 || code === 403 || code === 500) {
+          wsStateSignal.value = 'errored';
+          // TODO Send to backend endpoint for logging errors
+          console.log('Connection Error', JSON.stringify(data, null, 2));
+          ws.close();
+        }
+        console.log(JSON.stringify(data, null, 2));
+      } else if (data.type === 'data') {
         if (data.payload.data.addMessage) {
           const message = data.payload.data.addMessage;
           const contentElement = document.getElementById('content');
@@ -256,16 +268,18 @@ export default component$(() => {
             messageElement.scrollIntoView({behavior: 'smooth', block: 'end'});
           }
         }
+      } else {
+        console.log('Unknown data type inside', JSON.stringify(data, null, 2));
       }
     }
   });
 
   const onClose$: CloseEventFunction = $((ev, ws, funcs) => {
     console.log('Websocket Closed', ev.timeStamp);
-    console.log(ws.readyState);
-
-    // Events can access the additional websocket functions provided in the 3rd argument.
-    funcs.reconnect();
+    if (wsStateSignal.value !== 'errored') {
+      wsStateSignal.value = 'closed';
+      funcs.reconnect();
+    }
   });
 
   const webSocketUrl = getWebsocketUrl(
@@ -301,54 +315,65 @@ export default component$(() => {
               <LogoLight width={200} />
             </a>
           </div>
-          <div>
-            You are{' '}
-            <span class="text-neutral-250 font-semibold">
-              {handleSignal.value}
-            </span>
-          </div>
-          <div class="text-2xl text-neutral-400 pt-5">
-            Ask Bob a question...
-          </div>
+          {wsStateSignal.value === 'connected' && (
+            <>
+              <div>
+                You are{' '}
+                <span class="text-neutral-250 font-semibold">
+                  {handleSignal.value}
+                </span>
+              </div>
+              <div class="text-2xl text-neutral-400 pt-5">
+                Ask Bob a question...
+              </div>
+            </>
+          )}
+          {wsStateSignal.value === 'errored' && (
+            <div>
+              An error occurred connecting. Please refresh to try again.
+            </div>
+          )}
         </div>
         <div id="content" class="w-4/5 md:w-1/2 overflow-auto"></div>
-        <div
-          id="editor"
-          contentEditable="true"
-          class="w-4/5 md:w-1/2 bg-neutral-750 rounded-3xl sm:mb-2 md:mb-12 p-4 outline-none overflow-auto"
-          // onPaste$={[
-          //   sync$((e: ClipboardEvent) => e.preventDefault()),
-          //   $((e) => {
-          //     if (e.clipboardData) {
-          //       const text = e.clipboardData.getData('text/plain');
-          //       const selection = document.getSelection();
-          //       if (selection) {
-          //         const range = selection.getRangeAt(0);
-          //         range.deleteContents();
-          //         const textNode = document.createTextNode(text);
-          //         range.insertNode(textNode);
-          //         range.setStartAfter(textNode);
-          //         selection.removeAllRanges();
-          //         selection.addRange(range);
-          //       }
-          //     }
-          //   }),
-          // ]}
-          onKeyDown$={[
-            sync$(
-              (e: KeyboardEvent) => e.key === 'Enter' && e.preventDefault(),
-            ),
-            $((e) => {
-              if (e.key === 'Enter') {
-                const element = document.getElementById('editor');
-                if (element) {
-                  sendMessage(handleSignal.value, element.innerText);
-                  element.innerText = '';
+        {wsStateSignal.value === 'connected' && (
+          <div
+            id="editor"
+            contentEditable="true"
+            class="w-4/5 md:w-1/2 bg-neutral-750 rounded-3xl sm:mb-2 md:mb-12 p-4 outline-none overflow-auto"
+            // onPaste$={[
+            //   sync$((e: ClipboardEvent) => e.preventDefault()),
+            //   $((e) => {
+            //     if (e.clipboardData) {
+            //       const text = e.clipboardData.getData('text/plain');
+            //       const selection = document.getSelection();
+            //       if (selection) {
+            //         const range = selection.getRangeAt(0);
+            //         range.deleteContents();
+            //         const textNode = document.createTextNode(text);
+            //         range.insertNode(textNode);
+            //         range.setStartAfter(textNode);
+            //         selection.removeAllRanges();
+            //         selection.addRange(range);
+            //       }
+            //     }
+            //   }),
+            // ]}
+            onKeyDown$={[
+              sync$(
+                (e: KeyboardEvent) => e.key === 'Enter' && e.preventDefault(),
+              ),
+              $((e) => {
+                if (e.key === 'Enter') {
+                  const element = document.getElementById('editor');
+                  if (element) {
+                    sendMessage(handleSignal.value, element.innerText);
+                    element.innerText = '';
+                  }
                 }
-              }
-            }),
-          ]}
-        ></div>
+              }),
+            ]}
+          ></div>
+        )}
       </div>
     </UniversalLayout>
   );
