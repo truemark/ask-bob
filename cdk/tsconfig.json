@@ -18,7 +18,8 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "typeRoots": ["./node_modules/@types"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "preserveWatchOutput": true
   },
   "exclude": ["node_modules", "cdk.out"]
 }

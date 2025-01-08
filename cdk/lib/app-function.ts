@@ -26,7 +26,6 @@ export interface AppFunctionProps {
   readonly agentAliasId: string;
   readonly appSyncEndpoint: string;
   readonly appSyncRealtimeEndpoint: string;
-  readonly appSyncApiKey: string;
 }
 
 /**
@@ -51,7 +50,6 @@ export class AppFunction extends ExtendedNodejsFunction {
         AGENT_ALIAS_ID: props.agentAliasId,
         APP_SYNC_ENDPOINT: props.appSyncEndpoint,
         APP_SYNC_REALTIME_ENDPOINT: props.appSyncRealtimeEndpoint,
-        APP_SYNC_API_KEY: props.appSyncApiKey,
       },
       // TODO Introduce alarms later
       createAlarms: false,

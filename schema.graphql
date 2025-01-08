@@ -3,6 +3,7 @@ type Mutation {
     sessionId: String!
     body: String!
     handle: String!
+    replyToMessageId: String
   ): Message!
 }
 
@@ -16,11 +17,12 @@ type Subscription {
 }
 
 type Message {
-  messageId: String!
+  messageId: ID!
   sessionId: String!
   body: String!
   handle: String!
   createdAt: String!
+  replyToMessageId: String
 }
 
 schema {

@@ -26,7 +26,6 @@ log.info().str('logLevel', level).msg('Initializing config');
 
 const agentId = getEnv('AGENT_ID');
 const agentAliasId = getEnv('AGENT_ALIAS_ID');
-const appSyncApiKey = getEnv('APP_SYNC_API_KEY');
 const appSyncEndpoint = getEnv('APP_SYNC_ENDPOINT');
 
 export type Message = {
@@ -36,36 +35,41 @@ export type Message = {
   createdAt: string;
   handle: string;
   body: string;
+  replyToMessageId: string;
 };
 
 const client = new BedrockAgentRuntimeClient();
 const decoder = new TextDecoder('utf-8');
 
-export async function sendMessage(message: string) {
-  const response = await fetch(appSyncEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': appSyncApiKey,
-    },
-    body: JSON.stringify({
-      query: `
-    mutation CreateMessage($sessionId: String!, $body: String!, $handle: String!) {
-      createMessage(sessionId: $sessionId, body: $body, handle: $handle) {
+export async function sendMessage(message: string, replyToMessageId: string) {
+  const body = {
+    query: `
+    mutation CreateMessage($sessionId: String!, $body: String!, $handle: String!, $replyToMessageId: String) {
+      createMessage(sessionId: $sessionId, body: $body, handle: $handle, replyToMessageId: $replyToMessageId) {
         messageId
         sessionId
         body
         handle
         createdAt
+        replyToMessageId
       }
     }
   `,
-      variables: {
-        sessionId: 'test', // TODO later be dynamic
-        body: message,
-        handle: 'Bob',
-      },
-    }),
+    variables: {
+      sessionId: 'test',
+      body: message,
+      handle: 'Bob',
+      replyToMessageId,
+    },
+  };
+  log.info().obj('body', body).msg('Sending message');
+  const response = await fetch(appSyncEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'anonymous',
+    },
+    body: JSON.stringify(body),
   });
   console.log(response);
 }
@@ -89,8 +93,8 @@ export const handler = async (event: SQSEvent) => {
         for await (const output of response.completion) {
           if (output.chunk) {
             const content = decoder.decode(output.chunk.bytes);
-            console.log('Sending message', content);
-            await sendMessage(content);
+            log.info().str('content', content).msg('Sending message');
+            await sendMessage(content, message.messageId);
             count++;
           }
         }

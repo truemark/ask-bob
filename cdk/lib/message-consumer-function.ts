@@ -13,7 +13,6 @@ export interface MessageConsumerFunctionProps {
   readonly messageQueue: IQueue;
   readonly agentId: string;
   readonly agentAliasId: string;
-  readonly appSyncApiKey: string;
   readonly appSyncEndpoint: string;
 }
 
@@ -40,7 +39,6 @@ export class MessageConsumerFunction extends ExtendedNodejsFunction {
         LOG_LEVEL: props.logLevel,
         AGENT_ID: props.agentId,
         AGENT_ALIAS_ID: props.agentAliasId,
-        APP_SYNC_API_KEY: props.appSyncApiKey,
         APP_SYNC_ENDPOINT: props.appSyncEndpoint,
       },
       criticalAlarmOptions: {

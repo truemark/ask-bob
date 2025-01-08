@@ -132,15 +132,17 @@ type ConfigData = {
   realtimeEndpoint: string;
 };
 
-export const sendMessage = server$(async (handle: string, message: string) => {
-  const response = await fetch(config().appSyncEndpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': config().appSyncApiKey,
-    },
-    body: JSON.stringify({
-      query: `
+export const sendMessage = server$(
+  async (handle: string, message: string, apiKey: string) => {
+    console.log('sending message');
+    const response = await fetch(config().appSyncEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': apiKey,
+      },
+      body: JSON.stringify({
+        query: `
     mutation CreateMessage($sessionId: String!, $body: String!, $handle: String!) {
       createMessage(sessionId: $sessionId, body: $body, handle: $handle) {
         messageId
@@ -151,21 +153,21 @@ export const sendMessage = server$(async (handle: string, message: string) => {
       }
     }
   `,
-      variables: {
-        sessionId: 'test', // TODO later be dynamic
-        body: message,
-        handle: handle,
-      },
-    }),
-  });
-  console.log(response);
-});
+        variables: {
+          sessionId: 'test', // TODO later be dynamic
+          body: message,
+          handle: handle,
+        },
+      }),
+    });
+    console.log(response);
+  },
+);
 
-// TODO 100% Not Safe, we'll deal with real auth later once it works
 export const useConfigData = routeLoader$(
   async function (): Promise<ConfigData> {
     return {
-      apiKey: config().appSyncApiKey,
+      apiKey: 'anonymous',
       endpoint: config().appSyncEndpoint,
       realtimeEndpoint: config().appSyncRealtimeEndpoint,
     };
@@ -176,10 +178,10 @@ export const useConfigData = routeLoader$(
 //   return {ip: clientConn.ip};
 // });
 
-function encodeAppSyncCredentials(url: URL, apiKey: string) {
+function encodeAppSyncCredentials(url: URL, authorizationToken: string) {
   const creds = {
-    'host': url.host,
-    'x-api-key': apiKey,
+    host: url.host,
+    Authorization: authorizationToken,
   };
   return btoa(JSON.stringify(creds));
 }
@@ -190,7 +192,7 @@ function getWebsocketUrl(url: URL, apKey: string) {
   return `${url.toString()}?header=${header}&payload=${payload}`;
 }
 
-function startSubscription(ws: WebSocket, url: URL, apiKey: string) {
+function startSubscription(ws: WebSocket, url: URL, authoriationToken: string) {
   const subscribeMessage = {
     id: uuidv4(),
     type: 'start',
@@ -203,13 +205,14 @@ function startSubscription(ws: WebSocket, url: URL, apiKey: string) {
                           body
                           handle
                           createdAt
+                          replyToMessageId
                         }
                     }`,
       }),
       extensions: {
         authorization: {
-          'x-api-key': apiKey,
-          'host': url.host,
+          Authorization: authoriationToken,
+          host: url.host,
         },
       },
     },
@@ -224,19 +227,19 @@ export default component$(() => {
 
   const onOpen$: OpenEventFunction = $((ev, ws) => {
     wsStateSignal.value = 'opened';
-    console.log('Websocket Opened', ev.timeStamp);
+    console.log('Websocket opened', ev.timeStamp);
     ws.send(JSON.stringify({type: 'connection_init'}));
   });
 
   const onError$: ErrorEventFunction = $((ev, ws) => {
     wsStateSignal.value = 'errored';
-    console.log('Websocket Error', ev.timeStamp);
+    console.log('Websocket error', ev.timeStamp);
     ws.close();
   });
 
   const onMessage$: MessageEventFunction = $((ev, ws) => {
+    const data = JSON.parse(ev.data as string);
     if (typeof ev.data === 'string') {
-      const data = JSON.parse(ev.data);
       if (data.type === 'connection_ack') {
         startSubscription(
           ws,
@@ -249,27 +252,35 @@ export default component$(() => {
         const code = data.payload.errors[0].errorCode;
         if (code === 401 || code === 403 || code === 500) {
           wsStateSignal.value = 'errored';
-          // TODO Send to backend endpoint for logging errors
-          console.log('Connection Error', JSON.stringify(data, null, 2));
+          console.log('Connection error', JSON.stringify(data, null, 2));
           ws.close();
         }
-        console.log(JSON.stringify(data, null, 2));
       } else if (data.type === 'data') {
+        console.log('Data received', JSON.stringify(data, null, 2));
         if (data.payload.data.addMessage) {
           const message = data.payload.data.addMessage;
           const contentElement = document.getElementById('content');
-          const messageElement = document.createElement('div');
-          messageElement.innerHTML += `<div class="pb-4 pt-4 flex">
-                <div class="pr-4 font-semibold ${message.handle === 'Bob' ? 'text-brand-primary' : message.handle !== handleSignal.value ? 'text-yellow-600' : 'text-neutral-250'}">${message.handle}:</div>
-                <div>${message.body}</div>
-             </div>`;
-          if (contentElement) {
-            contentElement.appendChild(messageElement);
-            messageElement.scrollIntoView({behavior: 'smooth', block: 'end'});
+          if (message.handle !== 'Bob') {
+            const messageElement = document.createElement('div');
+            messageElement.innerHTML += `<div class="pb-4 pt-4 flex" id="message-${message.messageId}">
+                  <div class="pr-4 font-semibold ${message.handle === 'Bob' ? 'text-brand-primary' : message.handle !== handleSignal.value ? 'text-yellow-600' : 'text-neutral-250'}">${message.handle}:</div>
+                  <div>${message.body}</div>
+               </div>`;
+            messageElement.innerHTML += `<div class="pb-4 pt-4 flex" class="text-neutral-250" id=${'bob-' + message.messageId}>.... working to answer ${message.handle}</div>`;
+            if (contentElement) {
+              contentElement.appendChild(messageElement);
+              messageElement.scrollIntoView({behavior: 'smooth', block: 'end'});
+            }
+          } else {
+            const bobElement = document.getElementById(
+              'bob-' + message.replyToMessageId,
+            );
+            if (bobElement) {
+              bobElement!.innerHTML = `<div class="pr-4 font-semibold text-brand-primary">${message.handle}:</div>
+                    <div>${message.body}</div>`;
+            }
           }
         }
-      } else {
-        console.log('Unknown data type inside', JSON.stringify(data, null, 2));
       }
     }
   });
@@ -366,7 +377,11 @@ export default component$(() => {
                 if (e.key === 'Enter') {
                   const element = document.getElementById('editor');
                   if (element) {
-                    sendMessage(handleSignal.value, element.innerText);
+                    sendMessage(
+                      handleSignal.value,
+                      element.innerText,
+                      configData.value.apiKey,
+                    );
                     element.innerText = '';
                   }
                 }

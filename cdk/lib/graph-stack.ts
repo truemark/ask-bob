@@ -6,6 +6,7 @@ import {ParameterStore, ParameterStoreOptions} from 'truemark-cdk-lib/aws-ssm';
 import * as path from 'path';
 import {
   AppsyncFunction,
+  AuthorizationType,
   Code,
   Definition,
   DynamoDbDataSource,
@@ -22,6 +23,7 @@ import {StandardQueue} from 'truemark-cdk-lib/aws-sqs';
 import {MessageConsumerFunction} from './message-consumer-function';
 import {LogLevel} from './globals';
 import {getBedrockStackParameters} from './bedrock-stack';
+import {AppSyncAuthorizerFunction} from './app-sync-authorizer-function';
 
 export enum GraphStackParameterExport {
   MessageQueueArn = 'MessageQueueArn',
@@ -114,14 +116,17 @@ export class GraphStack extends ExtendedStack {
       messageQueue.queueName,
     );
 
+    const appSyncAuthorizer = new AppSyncAuthorizerFunction(
+      this,
+      'AuthorizerFunction',
+    );
+
     // TODO Remove this and use BestOriginFunction
     const domainName = new DomainName({
       prefix: 'ask-bob-graph',
       zone: props.zone,
     });
-
     const certificate = graphSupportParameters.certificate;
-
     const schemaPath = path.join(__dirname, '..', '..', 'schema.graphql');
 
     const api = new GraphqlApi(this, 'GraphqlApi', {
@@ -141,19 +146,14 @@ export class GraphStack extends ExtendedStack {
         messageQueueUrl: messageQueue.queueUrl,
         messageQueueName: messageQueue.queueName,
       },
-      // TODO Move to different auth later
-      // authorizationConfig: {
-      //   defaultAuthorization: {
-      //     authorizationType: AuthorizationType.OIDC,
-      //     openIdConnectConfig: {
-      //       oidcProvider: '',
-      //     },
-      //   },
-      // },
-      // environmentVariables: {
-      //   AUDIENCE: props.audience,
-      //   SYSTEM_CLIENT_IDS: props.systemClientIds.join(','),
-      // },
+      authorizationConfig: {
+        defaultAuthorization: {
+          authorizationType: AuthorizationType.LAMBDA,
+          lambdaAuthorizerConfig: {
+            handler: appSyncAuthorizer,
+          },
+        },
+      },
     });
     this.exportAndOutputParameter(
       GraphStackParameterExport.AppSyncEndpoint,
@@ -165,7 +165,7 @@ export class GraphStack extends ExtendedStack {
     );
     this.exportAndOutputParameter(
       GraphStackParameterExport.AppSyncApiKey,
-      api.apiKey!,
+      'badkey',
     );
 
     const responseMappingTemplate = MappingTemplate.fromString(
@@ -211,7 +211,6 @@ export class GraphStack extends ExtendedStack {
       messageQueue,
       agentId: bedrockParameters.agentId,
       agentAliasId: bedrockParameters.agentAliasId,
-      appSyncApiKey: api.apiKey!,
       appSyncEndpoint: api.graphqlUrl,
     });
   }

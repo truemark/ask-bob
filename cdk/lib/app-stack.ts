@@ -74,7 +74,6 @@ export class AppStack extends ExtendedStack {
       agentAliasId: bedrockStackParameters.agentAliasId,
       appSyncEndpoint: graphStackParameters.appSyncEndpoint,
       appSyncRealtimeEndpoint: graphStackParameters.appSyncRealtimeEndpoint,
-      appSyncApiKey: graphStackParameters.appSyncApiKey,
     });
 
     new DomainName({

@@ -19,6 +19,7 @@ export function request(ctx: Context) {
     createdAt: now,
     handle: ctx.args.handle,
     body: ctx.args.body,
+    replyToMessageId: ctx.args.replyToMessageId,
   };
   const messageBody = util.urlEncode(JSON.stringify(message));
   const queueUrlEncoded = util.urlEncode(queueUrl);

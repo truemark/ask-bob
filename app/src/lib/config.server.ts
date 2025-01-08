@@ -7,7 +7,6 @@ export interface Config {
   readonly log: logging.Logger;
   readonly agentId: string;
   readonly agentAliasId: string;
-  readonly appSyncApiKey: string;
   readonly appSyncEndpoint: string;
   readonly appSyncRealtimeEndpoint: string;
   readonly dataSettings: DataSettings;
@@ -41,7 +40,6 @@ export default function getConfig(): Config {
     log,
     agentId: getEnv('AGENT_ID'),
     agentAliasId: getEnv('AGENT_ALIAS_ID'),
-    appSyncApiKey: getEnv('APP_SYNC_API_KEY'),
     appSyncEndpoint: getEnv('APP_SYNC_ENDPOINT'),
     appSyncRealtimeEndpoint: getEnv('APP_SYNC_REALTIME_ENDPOINT'),
     dataSettings: new DataSettings(),
