@@ -10,3 +10,4 @@ tmp
 one-off.test.ts
 one-off.test.mts
 .DS_Store
+.sw?
