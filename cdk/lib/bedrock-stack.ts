@@ -65,6 +65,18 @@ export class BedrockStack extends ExtendedStack {
   constructor(scope: Construct, id: string, props: BedrockStackProps) {
     super(scope, id, props);
 
+    // const model = FoundationModel.fromFoundationModelId(
+    //   this,
+    //   'Model',
+    //   FoundationModelIdentifier.ANTHROPIC_CLAUDE_3_5_SONNET_20241022_V2_0,
+    // );
+
+    const model = FoundationModel.fromFoundationModelId(
+      this,
+      'Model',
+      new FoundationModelIdentifier('meta.llama3-3-70b-instruct-v1:0'), // Not in CDK yet
+    );
+
     const embeddingModel = FoundationModel.fromFoundationModelId(
       this,
       'EmbeddingModel',
@@ -349,12 +361,6 @@ export class BedrockStack extends ExtendedStack {
       name: 'AskBobWebDataSource',
       dataDeletionPolicy: 'DELETE',
     });
-
-    const model = FoundationModel.fromFoundationModelId(
-      this,
-      'Mode',
-      FoundationModelIdentifier.ANTHROPIC_CLAUDE_3_5_SONNET_20241022_V2_0,
-    );
 
     const agentRole = new Role(this, 'AgentRole', {
       assumedBy: new ServicePrincipal('bedrock.amazonaws.com'),
